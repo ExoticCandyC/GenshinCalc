@@ -1,0 +1,42 @@
+:root{
+    --ToastLocation: 4rem;
+}
+.toast {
+    min-width: 20em; /* Set a default minimum width */
+    margin-left: -125px; /* Divide value of min-width by 2 */
+    text-align: center; /* Centered text */
+    border-radius: 1em; /* Rounded borders */
+    padding: 1.5em; /* Padding */
+    position: fixed; /* Sit on top of the screen */
+    z-index: 1; /* Add a z-index if needed */
+    left: 50%; /* Center the snackbar */
+    top: var(--ToastLocation); /* 30px from the bottom */
+
+    -webkit-animation: fadein 0.5s, fadeout 0.5s 2.5s;
+    animation: fadein 0.5s, fadeout 0.5s 2.5s;
+
+    background-color:rgb(58, 58, 58); /* Black background color */
+    color: rgb(255, 255, 255); /* White text color */
+    box-shadow: 0 0 10px rgba(0,0,0,.7);
+  }
+  
+  /* Animations to fade the snackbar in and out */
+  @-webkit-keyframes fadein {
+    from {top: 0; opacity: 0;}
+    to {top: var(--ToastLocation); opacity: 1;}
+  }
+  
+  @keyframes fadein {
+    from {top: 0; opacity: 0;}
+    to {top: var(--ToastLocation); opacity: 1;}
+  }
+  
+  @-webkit-keyframes fadeout {
+    from {top: var(--ToastLocation); opacity: 1;}
+    to {top: 0; opacity: 0;}
+  }
+  
+  @keyframes fadeout {
+    from {top: var(--ToastLocation); opacity: 1;}
+    to {top: 0; opacity: 0;}
+  }

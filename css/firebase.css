@@ -1,0 +1,22 @@
+
+#firebaseui-auth-container form{
+    width: 100%;
+}
+
+
+#signInContainer{
+    background: var(--Container);
+    box-shadow: 0 0 10px black;
+    padding-top: 1em;
+    width: 360px;
+}
+
+.loginContainer{
+    display: flex;
+    align-content: center;
+    justify-content: space-around;
+    
+    font-size: 1em;
+    color: rgba(150,150,150,1);
+    font-family: "Segoe UI", "Lucida Grande";
+}

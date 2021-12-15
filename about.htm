@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Genshin Impact Damage Calculator</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+	<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+    <script src="jquery.mobile.custom.min.js"></script>
+
+    <script>   
+        var asslt = 20;
+        var bsslt = 5;
+    </script>
+
+    <meta name="viewport" content="width=device-width" />
+    <meta name='description'
+        content="Genshin Impact Damage Calculator that applies the correct damage formulas. Optimizer to help find the best in slot weapons, sets, and substats for more DPS. Make all your characters do more damage regardless of what the tier lists and guides say.">
+
+    <link type="text/css" rel="stylesheet" href="css/headerfooter.css">
+    <link type="text/css" rel="stylesheet" href="css/index.css">
+    <link type="text/css" rel="stylesheet" href="css/banners.css">
+    <link type="text/css" rel="stylesheet" href="css/tabMenu.css">
+
+	<script type="text/javascript">
+		window["nitroAds"] = window["nitroAds"] || {
+			createAd: function () {
+				window.nitroAds.queue.push(["createAd", arguments]);
+			},
+			queue: []
+		};
+	</script>
+    <script async src="https://s.nitropay.com/ads-606.js"></script>
+    
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+    <link rel="manifest" href="site.webmanifest">
+
+<script>    (function(c,l,a,r,i,t,y){        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);    })(window, document, "clarity", "script", "4fv118t67o");</script>
+    <!-- Firebase App -->
+<script src="https://www.gstatic.com/firebasejs/8.2.2/firebase-app.js"></script>
+
+<!-- Firebase products-->
+<script src="https://www.gstatic.com/firebasejs/8.2.2/firebase-analytics.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.2.2/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.2.2/firebase-firestore.js"></script>
+
+<!-- Firebase  Auth UI -->
+<script src="https://www.gstatic.com/firebasejs/ui/4.6.1/firebase-ui-auth.js"></script>
+<link type="text/css" rel="stylesheet" href="https://www.gstatic.com/firebasejs/ui/4.6.1/firebase-ui-auth.css" />
+<link type="text/css" rel="stylesheet" href="css/firebase.css" />
+
+<script>
+    // Firebase configuration
+    var firebaseConfig = {
+        apiKey: "AIzaSyDTd59P5LtcHrhzKtLNkOUmi3zEpgOf0OM",
+        authDomain: "genshinimpactcalculator.firebaseapp.com",
+        projectId: "genshinimpactcalculator",
+        storageBucket: "genshinimpactcalculator.appspot.com",
+        messagingSenderId: "333300908470",
+        appId: "1:333300908470:web:b48c8fe87e88f48e880117",
+    measurementId: "G-NJV8WFNJY5"
+    };
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+  firebase.analytics();
+
+    var db = firebase.firestore();
+</script>
+
+<script>
+    $(document).ready(()=>{
+        let u = GetUser(false);
+        if (u) {
+            checkPrem(true);
+            $("#signInButton").text("Log Out");
+            $("#signInButton").click(SignOut);
+        }
+        else {
+            $("#signInButton").text("Log In");
+            $("#signInButton").click(SignIn);
+            _C1=false;
+        }
+    });
+
+    firebase.auth().onAuthStateChanged(user => {
+        if (user) {
+            checkPrem(true);
+            $("#signInButton").text("Log Out");
+            $("#signInButton").click(SignOut);
+        }
+        else {
+            $("#signInButton").text("Log In");
+            $("#signInButton").click(SignIn);
+            _C1=false;
+        }
+    });
+    function SignIn(){
+        window.open("/login","Log In",`scrollbars=no,resizable=no,status=no,location=no,toolbar=no,menubar=no,
+width=900px,height=800px,left=-1000,top=-1000`);
+    }
+    function SignOut(){
+        firebase.auth().signOut().then(function(){
+            console.log("Signed Out.");
+        }).catch(function(error){
+            console.log("Sign out error.");
+        });
+    }
+
+    function GetUser(triggerSignIn=true){
+        let user = firebase.auth().currentUser;
+        if(user){
+            return user.uid;
+        }else if(triggerSignIn){
+            SignIn();
+        }
+        return false;
+    }
+
+    var _B1 = bsslt;
+    var _A1 = asslt;
+    var _C1 = false;
+
+    async function verify(docs,user){
+        await checkPrem();
+        if(docs.size > _B1){
+            db.collection("/premiumUsers/watchList/members").add({
+                userRef: "users/" + user.uid,
+                provider: user.providerData[0],
+                type: "builds",
+                count: docs.size,
+                date: new Date()
+            });
+        }
+        
+        let count = 1;
+        docs.forEach((doc)=>{
+            if(count++ > _B1){
+                _GUI._DB.doc(doc.id).delete();
+            }
+            let n = doc.data().name;
+            let safe = safeify(n);
+            if(n != safe){
+                _GUI._DB.add({
+                        name: safe,
+                        data: doc.data().data
+                    }).then((d) => {
+                        _GUI._SavedBuilds[safe] = {
+                            id: d.id,
+                            data: doc.data().data,
+                            date: new Date()
+                        }
+                        _GUI._DB.doc(doc.id).delete();
+                    });
+            }
+        });
+    }
+
+    async function checkArt(docs,user){
+        await checkPrem();
+        if(docs.size > _A1){
+            db.collection("/premiumUsers/watchList/members").add({
+                userRef: "users/" + user.uid,
+                provider: user.providerData[0],
+                type: "artifacts",
+                count: docs.size,
+                date: new Date()
+            });
+            let count = 1;
+            docs.forEach((doc)=>{
+                if(count++ > _A1){
+                    _GUI._ArtifactCtrl._DB.doc(doc.id).delete();
+                }
+            });
+        }
+    }
+
+    async function checkPrem(force){
+        if(_C1 && !force){
+            return;
+        }
+        _C1 = true;
+        await db.doc("premiumUsers/userList/members/" + GetUser()).get().then((doc)=>{
+            if(doc.exists){
+                let dd = doc.data();
+                let ddd = JSON.parse(dd.product);
+                if(dd["isActive"]=="active" && new Date(dd["end_period"]*1000) > Date.now()){
+                    _B1 = (parseInt(ddd["Character Slots"]) ?? 0) + bsslt;
+                    _A1 = (parseInt(ddd["Artifact Slots"])  ?? 0) + asslt;
+                    if(ddd["Ad Free"] == "true"){
+                        $.each($(".adban"), function(idx, val){
+                            let ii = $(val).attr("id");
+                            $(val).replaceWith(div({id:ii,class:"adbancl"},""));
+                        });
+                    }
+                }else{    
+                    _B1 = bsslt;
+                    _A1 = asslt;
+                    freeNit();
+                }
+            }else{
+                _B1 = bsslt;
+                _A1 = asslt;
+                freeNit();
+            }
+        });
+    }
+
+    var __q = [];
+    function freeNit(){
+        for(let i in __q){
+            __q[i]();
+        }
+    }
+
+    function safeify(doc){
+        if(doc){
+            if(doc.name){
+                doc.name = doc.name.replaceAll("'", "&#39").replaceAll(/[\<\>\*]/g, "").replaceAll(/`/g, "").replaceAll(/\/{2}/g, "");
+                doc.data = doc.data.replaceAll("'", "&#39").replaceAll(/[\<\>\*]/g, "").replaceAll(/`/g, "").replaceAll(/\/{2}/g, "");
+            }else{
+                doc = doc.replaceAll("'", "&#39").replaceAll(/[\<\>\*]/g, "").replaceAll(/`/g, "").replaceAll(/\/{2}/g, "");
+            }
+        }
+        return doc;
+    }
+</script></head>
+
+<body>
+    <div class="header">
+    <div class="headerLabel" id="homeButton"><a href="https://genshinimpactcalculator.com/index.htm">Genshin Impact Calculator</a></div>
+    <div class="headerButtonContainer">
+        <div class="headerButton" id="calcButton"><a href="https://genshinimpactcalculator.com/genshinCalc.htm">Calculator</a></div>
+        <div class="headerButton" id="aboutButton"><a href="https://genshinimpactcalculator.com/about.htm">About</a></div>
+        <div class="headerButton" id="signInButton"></div>
+        <div class="headerButton" id="helpButton"><a href="https://genshinimpactcalculator.com/help.htm" target="popup">Help</a></div>
+        <div class="headerAnchor">
+            <a class="widgetLogo-6zH6Nv" href="https://discord.gg/f5aCu4EHSN" target="_blank"></a>
+        </div>
+    </div>
+</div>    <script>$("#aboutButton").attr("active", true);</script>
+    <div id="BannerTop" class="adban"></div>
+
+<script type="text/javascript">
+function btnn(){
+  window['nitroAds'].createAd('BannerTop', {
+    "refreshLimit": 10,
+    "refreshTime": 90,
+    "renderVisibleOnly": false,
+    "refreshVisibleOnly": true,
+    "sizes": [
+      [
+        "728",
+        "90"
+      ],
+      [
+        "320",
+        "50"
+      ]
+    ],
+    "mediaQuery": "(min-width: 1025px), (min-width: 768px) and (max-width: 1024px), (min-width: 320px) and (max-width: 767px)"
+  });
+}
+__q.push(btnn)
+btnn();
+</script>    
+    <div class="container">
+        <div id="BannerLeft" class="adban"></div>
+
+<script type="text/javascript">
+function blnn(){
+  if (!window.matchMedia("screen and (max-width: 1024px)").matches) {
+    window['nitroAds'].createAd('BannerLeft', {
+      "refreshLimit": 10,
+      "refreshTime": 90,
+      "format": "sticky-stack",
+      "stickyStackLimit": 15,
+      "stickyStackSpace": 2.5,
+      "stickyStackOffset": 25,
+      "sizes": [
+        [
+          "300",
+          "250"
+        ],
+        [
+          "160",
+          "600"
+        ],
+        [
+          "300",
+          "600"
+        ]
+      ],
+      "mediaQuery": "(min-width: 1025px)"
+    });
+  }
+}
+__q.push(blnn);
+blnn();
+</script>        <div class="textContainer">
+            <h1>About</h1>
+            &emsp;&emsp;This calculator was originally created for personal use to help me min-max my characters. Since
+            I
+            didn't find any good damage calculators anywhere I thought I'd share it with the community. I plan to keep
+            this
+            as updated as I can and will be adding additional optimizers in the future. As always, thanks for the feedback!
+            <br><br>
+            Feel free to contact me with any bugs or suggestions: <a href="https://genshinimpactcalculator.com/cdn-cgi/l/email-protection.htm" class="__cf_email__" data-cfemail="355c58455456415206030d755258545c591b565a581b">[email&#160;protected]</a>
+            <a class="obviousLink" href="https://github.com/JenShin-368/GenshinImpactCalculator/issues">Click here to post a bug or suggestion directly.</a>
+            <br>Follow here to know when new updates are pushed: &emsp; <a href="https://twitter.com/DamageCalc?ref_src=twsrc%5Etfw" class="twitter-follow-button" data-show-count="false">Follow @DamageCalc</a><script data-cfasync="false" src="cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+            <br><br>
+            <span class="donations">Any donations to help me
+                cover the cost for hosting are appreciated: &emsp;
+                <form action="https://www.paypal.com/donate" method="post" target="_top">
+                    <input type="hidden" name="hosted_button_id" value="N6XWK5QQB7CQG" />
+                    <input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif" border="0"
+                        name="submit" title="PayPal - The safer, easier way to pay online!"
+                        alt="Donate with PayPal button" />
+                    <img alt="" border="0" src="https://www.paypal.com/en_US/i/scr/pixel.gif" width="1" height="1" />
+                </form>
+            </span>
+            <h2>Notes</h2>
+            &emsp;Make sure Javascript is enabled if you want to use the calculator.<br><br>
+        </div>
+        <div id="BannerRight" class="adban"></div>
+
+<script type="text/javascript">
+function brnn(){
+  if (!window.matchMedia("screen and (max-width: 1024px)").matches) {
+    window['nitroAds'].createAd('BannerRight', {
+      "refreshLimit": 10,
+      "refreshTime": 90,
+      "format": "sticky-stack",
+      "stickyStackLimit": 15,
+      "stickyStackSpace": 2.5,
+      "stickyStackOffset": 25,
+      "sizes": [
+        [
+          "300",
+          "250"
+        ],
+        [
+          "160",
+          "600"
+        ],
+        [
+          "300",
+          "600"
+        ]
+      ],
+      "mediaQuery": "(min-width: 1025px)"
+    });
+  }
+}
+__q.push(brnn);
+brnn();
+</script>    </div>
+	<div id="BannerBottom" class="adban"></div>
+
+<script type="text/javascript">
+function bbnn(){
+  window['nitroAds'].createAd('BannerBottom', {
+    "refreshLimit": 10,
+    "refreshTime": 90,
+    "renderVisibleOnly": false,
+    "refreshVisibleOnly": true,
+    "sizes": [
+      [
+        "728",
+        "90"
+      ],
+      [
+        "320",
+        "50"
+      ]
+    ],
+    "mediaQuery": "(min-width: 1025px), (min-width: 768px) and (max-width: 1024px), (min-width: 320px) and (max-width: 767px)"
+  });
+}
+__q.push(bbnn);
+bbnn();
+</script>    <div class="footer">Copyright ImpactG368 &#169; 2020 | v3.0 Genshin Impact Damage Calculator | <a class="obviousLink" href="https://github.com/JenShin-368/GenshinImpactCalculator/issues">Report bugs or suggestions
+        to:
+        <span class="__cf_email__" data-cfemail="39505449585a4d5e0a0f01795e54585055175a5654">[email&#160;protected]</span></a> |&nbsp; 
+        <a class="widgetLogo-small" href="https://discord.gg/f5aCu4EHSN" target="_blank"></a>
+        &nbsp;|&nbsp; 
+        <a href="https://genshinimpactcalculator.com/privacy.htm">Privacy Policy</a>&nbsp;|&nbsp;
+        <a href="https://genshinimpactcalculator.com/terms.htm">Terms of Service</a>
+        &nbsp;|
+        <span>
+            <form action="https://www.paypal.com/donate" method="post" target="_top">
+                <input type="hidden" name="hosted_button_id" value="N6XWK5QQB7CQG" />
+                <input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif" border="0"
+                    name="submit" title="PayPal - The safer, easier way to pay online!"
+                    alt="Donate with PayPal button" />
+                <img alt="" border="0" src="https://www.paypal.com/en_US/i/scr/pixel.gif" width="1" height="1" />
+            </form>
+        </span>
+        <span>
+            &emsp; <a href="https://twitter.com/DamageCalc?ref_src=twsrc%5Etfw" class="twitter-follow-button"
+                data-show-count="false">Follow @DamageCalc</a>
+            <script data-cfasync="false" src="cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+        </span>
+        <span data-ccpa-link="1"></span>
+        <div id="ncmp-consent-link"></div>
+    </div></body>
+
+</html>

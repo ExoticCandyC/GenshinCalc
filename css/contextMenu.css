@@ -1,0 +1,242 @@
+#contextMenuContainer {
+    position: fixed;
+    background: white;
+    color: black;
+    max-width: 500px;
+    z-index: 100;
+    padding-top: .5em;
+    padding-bottom: .5em;
+    display: none;
+    
+    box-shadow: 5px 5px 10px rgba(0,0,0,.5);
+}
+
+
+#predictorToolTip{
+    position: fixed;
+    display: block;
+    background: white;
+    color: black;
+    max-width: 500px;
+    z-index: 100;
+    padding: 1em;
+    display: none;
+    
+    box-shadow: 5px 5px 10px rgba(0,0,0,.5);
+    pointer-events: none;
+}
+
+.contextMenuItem{
+    padding: .5em;
+    padding-left: 2em;
+    padding-right: 2em;
+    cursor: default;
+}
+
+.contextMenuItem:hover{
+    background: grey;
+}
+
+.popupMenu{
+    position: fixed;
+    background: rgb(192, 192, 192);
+    color: black;
+    padding: 1em;
+    display: none;
+
+    box-shadow: 5px 5px 10px rgba(0,0,0,.5);
+    min-width: 20%;
+    
+    -webkit-user-select: none;  /* Chrome all / Safari all */
+    -moz-user-select: none;     /* Firefox all */
+    -ms-user-select: none;      /* IE 10+ */
+    user-select: none;          /* Likely future */   
+    z-index: 10;
+}
+
+.menuTitle{
+    border-bottom: 1px solid rgba(0,0,0,.1);
+    padding-bottom: .5em;
+    font-size: 1.2rem;
+}
+
+.saveMenuLabel{
+    color: black;
+    padding-bottom: .5em;
+}
+
+.menuInputRow{
+    padding-top: .5em;
+    padding-bottom: .5em;
+}
+
+.popupList{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-content: center;
+    margin: 0 auto;
+}
+
+.savedItem, .savedArtifactItem{
+    color: rgb(48, 107, 216);
+    background: rgb(168, 168, 168);
+    padding: 1em;
+    cursor: pointer;
+    font-family: "Segoe UI", "Lucida Grande";
+    font-weight: bold;
+}
+.savedItem:hover, .savedArtifactItem:hover{
+    opacity: .5;
+}
+
+
+.hasToolTip .tooltip{
+    visibility: hidden;
+    background: rgb(192, 192, 192);
+    color: black;
+    padding: .5em;
+
+    font-size:  .8rem;
+    font-family: "Segoe UI", "Lucida Grande";
+    position: absolute;
+    z-index: 5;
+    max-width: 33%;
+    box-shadow: 5px 5px 10px rgba(0,0,0,.5);
+}
+
+.hasToolTip:hover .tooltip{
+    visibility: visible;
+}
+
+#artifactPopupDisplay{
+    position: fixed;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+
+.artifactDisplayTitle{
+    font-size: 1.2rem;
+    padding: .5em;
+    border: 3px double;
+    padding-left: 1em;
+    color: white;
+}
+
+.artifactDisplayTop{
+    display: flex;
+    justify-content: space-between;
+    color: white;
+    border-bottom: 3px solid;
+}
+
+#artifactPopupDisplay [rarity="5"]{
+    background: rgb(209, 115, 8);
+    border-color:rgb(150, 83, 6);
+}
+#artifactPopupDisplay [rarity="4"]{
+    background: rgb(167, 113, 238);
+    border-color: rgb(101, 0, 233);
+}
+#artifactPopupDisplay [rarity="3"]{
+    background: rgb(87, 134, 221);
+    border-color: rgb(0, 79, 226);
+}
+
+
+.artifactDisplayTop::after{
+    content: ' ';
+    display: block;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(0,0,0,.5) 0%, rgba(255,255,255,.3) 100%);
+    z-index: 0;
+}
+
+.artifactDisplayLeft{
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.artifactDisplayBottom{
+    display: flex;
+    flex-direction: column;
+    z-index: 1;
+    align-items: flex-start;
+}
+
+.artifactDisplayBottom > .rarityContainer{
+    padding-left: 1.5em;
+    direction: ltr;
+}
+
+.artifactDisplayIcon{
+    width: 80px;
+    height: 80px;
+    background-size: 100%;
+    flex-shrink: 0;
+}
+
+.artthumb{
+    padding: 2em;
+    padding-left: 2em;
+}
+.arttype{
+    padding: 1em;
+    padding-left: 2em;
+}
+.artmaintype{
+    padding-left: 2em;
+}
+.artmainval{
+    font-size: 3em;
+    padding-left: .6em;
+}
+
+.artbot{
+    background: rgb(223, 215, 191);
+    font-size: 1.2em;
+    padding-left: 1.4em;
+}
+
+.artlevel{
+    margin-top: 1em;
+    margin-bottom: 1em;
+    border-radius: .2em;
+    padding-left: .5em;
+    padding-right: .5em;
+    padding-top:.1em;
+    padding-bottom:.1em;
+    color: white;
+    background: rgb(75, 75, 75);
+}
+
+.artsubstat{
+    color: rgb(44, 44, 44);
+    padding-top: 0;
+    padding-bottom: .5em;
+}
+
+.artset{
+    color: rgb(104, 192, 75);
+    padding-bottom: 1em;
+    padding-top: .5em;
+}
+.artinfo{
+    font-size: .8em;
+    padding: 1rem;
+    padding-top: 0;
+}
+
+[negative="true"]{
+    color: red;
+}
+[negative="false"]{
+    color: rgb(38, 131, 7);
+}

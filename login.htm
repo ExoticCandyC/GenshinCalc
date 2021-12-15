@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Genshin Impact Damage Calculator</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+	<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+    <script src="jquery.mobile.custom.min.js"></script>
+
+    <script>   
+        var asslt = 20;
+        var bsslt = 5;
+    </script>
+
+    <meta name="viewport" content="width=device-width" />
+    <meta name='description'
+        content="Genshin Impact Damage Calculator that applies the correct damage formulas. Optimizer to help find the best in slot weapons, sets, and substats for more DPS. Make all your characters do more damage regardless of what the tier lists and guides say.">
+
+    <link type="text/css" rel="stylesheet" href="css/headerfooter.css">
+    <link type="text/css" rel="stylesheet" href="css/index.css">
+    <link type="text/css" rel="stylesheet" href="css/banners.css">
+    <link type="text/css" rel="stylesheet" href="css/tabMenu.css">
+
+	<script type="text/javascript">
+		window["nitroAds"] = window["nitroAds"] || {
+			createAd: function () {
+				window.nitroAds.queue.push(["createAd", arguments]);
+			},
+			queue: []
+		};
+	</script>
+    <script async src="https://s.nitropay.com/ads-606.js"></script>
+    
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+    <link rel="manifest" href="site.webmanifest">
+
+<script>    (function(c,l,a,r,i,t,y){        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);    })(window, document, "clarity", "script", "4fv118t67o");</script>
+    <!-- Firebase App -->
+<script src="https://www.gstatic.com/firebasejs/8.2.2/firebase-app.js"></script>
+
+<!-- Firebase products-->
+<script src="https://www.gstatic.com/firebasejs/8.2.2/firebase-analytics.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.2.2/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.2.2/firebase-firestore.js"></script>
+
+<!-- Firebase  Auth UI -->
+<script src="https://www.gstatic.com/firebasejs/ui/4.6.1/firebase-ui-auth.js"></script>
+<link type="text/css" rel="stylesheet" href="https://www.gstatic.com/firebasejs/ui/4.6.1/firebase-ui-auth.css" />
+<link type="text/css" rel="stylesheet" href="css/firebase.css" />
+
+<script>
+    // Firebase configuration
+    var firebaseConfig = {
+        apiKey: "AIzaSyDTd59P5LtcHrhzKtLNkOUmi3zEpgOf0OM",
+        authDomain: "genshinimpactcalculator.firebaseapp.com",
+        projectId: "genshinimpactcalculator",
+        storageBucket: "genshinimpactcalculator.appspot.com",
+        messagingSenderId: "333300908470",
+        appId: "1:333300908470:web:b48c8fe87e88f48e880117",
+    measurementId: "G-NJV8WFNJY5"
+    };
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+  firebase.analytics();
+
+    var db = firebase.firestore();
+</script>
+
+<script>
+    $(document).ready(()=>{
+        let u = GetUser(false);
+        if (u) {
+            checkPrem(true);
+            $("#signInButton").text("Log Out");
+            $("#signInButton").click(SignOut);
+        }
+        else {
+            $("#signInButton").text("Log In");
+            $("#signInButton").click(SignIn);
+            _C1=false;
+        }
+    });
+
+    firebase.auth().onAuthStateChanged(user => {
+        if (user) {
+            checkPrem(true);
+            $("#signInButton").text("Log Out");
+            $("#signInButton").click(SignOut);
+        }
+        else {
+            $("#signInButton").text("Log In");
+            $("#signInButton").click(SignIn);
+            _C1=false;
+        }
+    });
+    function SignIn(){
+        window.open("/login","Log In",`scrollbars=no,resizable=no,status=no,location=no,toolbar=no,menubar=no,
+width=900px,height=800px,left=-1000,top=-1000`);
+    }
+    function SignOut(){
+        firebase.auth().signOut().then(function(){
+            console.log("Signed Out.");
+        }).catch(function(error){
+            console.log("Sign out error.");
+        });
+    }
+
+    function GetUser(triggerSignIn=true){
+        let user = firebase.auth().currentUser;
+        if(user){
+            return user.uid;
+        }else if(triggerSignIn){
+            SignIn();
+        }
+        return false;
+    }
+
+    var _B1 = bsslt;
+    var _A1 = asslt;
+    var _C1 = false;
+
+    async function verify(docs,user){
+        await checkPrem();
+        if(docs.size > _B1){
+            db.collection("/premiumUsers/watchList/members").add({
+                userRef: "users/" + user.uid,
+                provider: user.providerData[0],
+                type: "builds",
+                count: docs.size,
+                date: new Date()
+            });
+        }
+        
+        let count = 1;
+        docs.forEach((doc)=>{
+            if(count++ > _B1){
+                _GUI._DB.doc(doc.id).delete();
+            }
+            let n = doc.data().name;
+            let safe = safeify(n);
+            if(n != safe){
+                _GUI._DB.add({
+                        name: safe,
+                        data: doc.data().data
+                    }).then((d) => {
+                        _GUI._SavedBuilds[safe] = {
+                            id: d.id,
+                            data: doc.data().data,
+                            date: new Date()
+                        }
+                        _GUI._DB.doc(doc.id).delete();
+                    });
+            }
+        });
+    }
+
+    async function checkArt(docs,user){
+        await checkPrem();
+        if(docs.size > _A1){
+            db.collection("/premiumUsers/watchList/members").add({
+                userRef: "users/" + user.uid,
+                provider: user.providerData[0],
+                type: "artifacts",
+                count: docs.size,
+                date: new Date()
+            });
+            let count = 1;
+            docs.forEach((doc)=>{
+                if(count++ > _A1){
+                    _GUI._ArtifactCtrl._DB.doc(doc.id).delete();
+                }
+            });
+        }
+    }
+
+    async function checkPrem(force){
+        if(_C1 && !force){
+            return;
+        }
+        _C1 = true;
+        await db.doc("premiumUsers/userList/members/" + GetUser()).get().then((doc)=>{
+            if(doc.exists){
+                let dd = doc.data();
+                let ddd = JSON.parse(dd.product);
+                if(dd["isActive"]=="active" && new Date(dd["end_period"]*1000) > Date.now()){
+                    _B1 = (parseInt(ddd["Character Slots"]) ?? 0) + bsslt;
+                    _A1 = (parseInt(ddd["Artifact Slots"])  ?? 0) + asslt;
+                    if(ddd["Ad Free"] == "true"){
+                        $.each($(".adban"), function(idx, val){
+                            let ii = $(val).attr("id");
+                            $(val).replaceWith(div({id:ii,class:"adbancl"},""));
+                        });
+                    }
+                }else{    
+                    _B1 = bsslt;
+                    _A1 = asslt;
+                    freeNit();
+                }
+            }else{
+                _B1 = bsslt;
+                _A1 = asslt;
+                freeNit();
+            }
+        });
+    }
+
+    var __q = [];
+    function freeNit(){
+        for(let i in __q){
+            __q[i]();
+        }
+    }
+
+    function safeify(doc){
+        if(doc){
+            if(doc.name){
+                doc.name = doc.name.replaceAll("'", "&#39").replaceAll(/[\<\>\*]/g, "").replaceAll(/`/g, "").replaceAll(/\/{2}/g, "");
+                doc.data = doc.data.replaceAll("'", "&#39").replaceAll(/[\<\>\*]/g, "").replaceAll(/`/g, "").replaceAll(/\/{2}/g, "");
+            }else{
+                doc = doc.replaceAll("'", "&#39").replaceAll(/[\<\>\*]/g, "").replaceAll(/`/g, "").replaceAll(/\/{2}/g, "");
+            }
+        }
+        return doc;
+    }
+</script>
+
+<body>
+    <div id="BannerTop" class="adban"></div>
+
+<script type="text/javascript">
+function btnn(){
+  window['nitroAds'].createAd('BannerTop', {
+    "refreshLimit": 10,
+    "refreshTime": 90,
+    "renderVisibleOnly": false,
+    "refreshVisibleOnly": true,
+    "sizes": [
+      [
+        "728",
+        "90"
+      ],
+      [
+        "320",
+        "50"
+      ]
+    ],
+    "mediaQuery": "(min-width: 1025px), (min-width: 768px) and (max-width: 1024px), (min-width: 320px) and (max-width: 767px)"
+  });
+}
+__q.push(btnn)
+btnn();
+</script>    <div class="loginContainer">
+        <div id="BannerLeft" class="adban"></div>
+
+<script type="text/javascript">
+function blnn(){
+  if (!window.matchMedia("screen and (max-width: 1024px)").matches) {
+    window['nitroAds'].createAd('BannerLeft', {
+      "refreshLimit": 10,
+      "refreshTime": 90,
+      "format": "sticky-stack",
+      "stickyStackLimit": 15,
+      "stickyStackSpace": 2.5,
+      "stickyStackOffset": 25,
+      "sizes": [
+        [
+          "300",
+          "250"
+        ],
+        [
+          "160",
+          "600"
+        ],
+        [
+          "300",
+          "600"
+        ]
+      ],
+      "mediaQuery": "(min-width: 1025px)"
+    });
+  }
+}
+__q.push(blnn);
+blnn();
+</script>        <div id="signInContainer">
+            <h2 class="centerText">Log in</h2>
+            <hr>
+            <div id="firebaseui-auth-container"></div>
+        </div>
+        <div id="BannerRight" class="adban"></div>
+
+<script type="text/javascript">
+function brnn(){
+  if (!window.matchMedia("screen and (max-width: 1024px)").matches) {
+    window['nitroAds'].createAd('BannerRight', {
+      "refreshLimit": 10,
+      "refreshTime": 90,
+      "format": "sticky-stack",
+      "stickyStackLimit": 15,
+      "stickyStackSpace": 2.5,
+      "stickyStackOffset": 25,
+      "sizes": [
+        [
+          "300",
+          "250"
+        ],
+        [
+          "160",
+          "600"
+        ],
+        [
+          "300",
+          "600"
+        ]
+      ],
+      "mediaQuery": "(min-width: 1025px)"
+    });
+  }
+}
+__q.push(brnn);
+brnn();
+</script>    </div>
+
+    <div id="BannerBottom" class="adban"></div>
+
+<script type="text/javascript">
+function bbnn(){
+  window['nitroAds'].createAd('BannerBottom', {
+    "refreshLimit": 10,
+    "refreshTime": 90,
+    "renderVisibleOnly": false,
+    "refreshVisibleOnly": true,
+    "sizes": [
+      [
+        "728",
+        "90"
+      ],
+      [
+        "320",
+        "50"
+      ]
+    ],
+    "mediaQuery": "(min-width: 1025px), (min-width: 768px) and (max-width: 1024px), (min-width: 320px) and (max-width: 767px)"
+  });
+}
+__q.push(bbnn);
+bbnn();
+</script>    <script>
+        // FirebaseUI config.
+        var uiConfig = {
+            signInOptions: [
+                {
+                    provider: firebase.auth.GoogleAuthProvider.PROVIDER_ID,
+                    clientId: '333300908470-2424croltli2rs7ko676355e37kkcbkg.apps.googleusercontent.com'
+                },
+                firebase.auth.FacebookAuthProvider.PROVIDER_ID,
+                firebase.auth.TwitterAuthProvider.PROVIDER_ID,
+                {
+                    provider: firebase.auth.EmailAuthProvider.PROVIDER_ID,
+                    requireDisplayName: false
+                }
+            ],
+            credentialHelper: firebaseui.auth.CredentialHelper.GOOGLE_YOLO,
+            tosUrl: './terms',
+            privacyPolicyUrl: './privacy'
+            ,
+            callbacks: {
+                signInSuccessWithAuthResult: (authResult, redirectUrl) => {
+                    return false;
+                }
+            }
+        };
+
+        // Initialize the FirebaseUI Widget using Firebase.
+        var ui = new firebaseui.auth.AuthUI(firebase.auth());
+
+        let user = firebase.auth().currentUser;
+
+        firebase.auth().onAuthStateChanged(user => {
+            if (user) {
+                window.close();
+            }
+            else {
+                ui.start('#firebaseui-auth-container', uiConfig);
+            }
+        });
+    </script>
+</body>
+
+</head>
+
+
+</html>

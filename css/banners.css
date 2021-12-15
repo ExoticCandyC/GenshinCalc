@@ -1,0 +1,79 @@
+
+
+#BannerTop{
+    padding-top: 5rem;
+    width: 100%;
+    height: 120px;
+    display: flex;
+    justify-content: center;
+    overflow: hidden;
+}
+
+
+#fullScreenContainer:fullscreen #BannerTop{
+    padding-top: 0;
+}
+
+#BannerBottom{
+    width: 100%;
+    height: 120px;
+    display: flex;
+    justify-content: center;
+    padding-top: 1rem;
+    overflow: hidden;
+}
+
+#BannerLeft{
+
+}
+
+#BannerRight{
+
+}
+
+
+.SideBanner{
+    position: fixed;
+    right: 0;
+    top: calc(3em + 120px);
+    width: 30%;
+    height: 100%;
+    z-index: -1;
+}
+
+.report-link{
+    width: inherit;
+}
+
+@media only screen and (max-width: 1920px){
+
+    #fullLeftBannerParent{
+        width: calc(100vw - 102em - 30px);
+        height: 100px;
+        float: left;
+    }
+    
+    #fullRightBannerParent{
+        width: calc(100vw - 102em - 30px);
+        height: 100px;
+        float: right;
+    }
+}    
+
+
+@media only screen and (max-width: 45em), screen and (max-height: 400px){
+
+    #fullLeftBannerParent{
+        display: none;
+        width: 0;
+        height: 100px;
+        float: left;
+    }
+    
+    #fullRightBannerParent{
+        display: none;
+        width: 0;
+        height: 100px;
+        float: right;
+    }
+}    

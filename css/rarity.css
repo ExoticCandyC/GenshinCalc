@@ -1,0 +1,41 @@
+.rarityContainer{
+    unicode-bidi: bidi-override;
+    direction: rtl;
+    width: 10em;
+    overflow: hidden;
+}
+
+.rarityContainer > label:before {
+    content: '\2605';
+    font-size: 2em;
+}
+.rarityContainer > input + label[disable=true]:before {
+    color: rgba(0,0,0,0);
+    font-size: 2em;
+}
+.rarityContainer > input + label[disable=true]{
+    pointer-events: none;
+}
+
+.raritySelectInput{
+    display: none;
+}
+
+.rarityContainer:not(:checked) > label {
+    cursor:pointer;
+}
+
+.rarityContainer > input:checked ~ label {
+    color: #ffc700;    
+}
+.rarityContainer:not(:checked) > label:hover,
+.rarityContainer:not(:checked) > label:hover ~ label {
+    color: #deb217;  
+}
+.rarityContainer > input:checked + label:hover,
+.rarityContainer > input:checked + label:hover ~ label,
+.rarityContainer > input:checked ~ label:hover,
+.rarityContainer > input:checked ~ label:hover ~ label,
+.rarityContainer > label:hover ~ input:checked ~ label {
+    color: #c59b08;
+}

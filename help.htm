@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <title>Genshin Impact Damage Calculator</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+	<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+    <script src="jquery.mobile.custom.min.js"></script>
+
+    <script>   
+        var asslt = 20;
+        var bsslt = 5;
+    </script>
+
+    <meta name="viewport" content="width=device-width" />
+    <meta name='description'
+        content="Genshin Impact Damage Calculator that applies the correct damage formulas. Optimizer to help find the best in slot weapons, sets, and substats for more DPS. Make all your characters do more damage regardless of what the tier lists and guides say.">
+
+    <link type="text/css" rel="stylesheet" href="css/headerfooter.css">
+    <link type="text/css" rel="stylesheet" href="css/index.css">
+    <link type="text/css" rel="stylesheet" href="css/banners.css">
+    <link type="text/css" rel="stylesheet" href="css/tabMenu.css">
+
+	<script type="text/javascript">
+		window["nitroAds"] = window["nitroAds"] || {
+			createAd: function () {
+				window.nitroAds.queue.push(["createAd", arguments]);
+			},
+			queue: []
+		};
+	</script>
+    <script async src="https://s.nitropay.com/ads-606.js"></script>
+    
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+    <link rel="manifest" href="site.webmanifest">
+
+<script>    (function(c,l,a,r,i,t,y){        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);    })(window, document, "clarity", "script", "4fv118t67o");</script>
+    <!-- Firebase App -->
+<script src="https://www.gstatic.com/firebasejs/8.2.2/firebase-app.js"></script>
+
+<!-- Firebase products-->
+<script src="https://www.gstatic.com/firebasejs/8.2.2/firebase-analytics.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.2.2/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.2.2/firebase-firestore.js"></script>
+
+<!-- Firebase  Auth UI -->
+<script src="https://www.gstatic.com/firebasejs/ui/4.6.1/firebase-ui-auth.js"></script>
+<link type="text/css" rel="stylesheet" href="https://www.gstatic.com/firebasejs/ui/4.6.1/firebase-ui-auth.css" />
+<link type="text/css" rel="stylesheet" href="css/firebase.css" />
+
+<script>
+    // Firebase configuration
+    var firebaseConfig = {
+        apiKey: "AIzaSyDTd59P5LtcHrhzKtLNkOUmi3zEpgOf0OM",
+        authDomain: "genshinimpactcalculator.firebaseapp.com",
+        projectId: "genshinimpactcalculator",
+        storageBucket: "genshinimpactcalculator.appspot.com",
+        messagingSenderId: "333300908470",
+        appId: "1:333300908470:web:b48c8fe87e88f48e880117",
+    measurementId: "G-NJV8WFNJY5"
+    };
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+  firebase.analytics();
+
+    var db = firebase.firestore();
+</script>
+
+<script>
+    $(document).ready(()=>{
+        let u = GetUser(false);
+        if (u) {
+            checkPrem(true);
+            $("#signInButton").text("Log Out");
+            $("#signInButton").click(SignOut);
+        }
+        else {
+            $("#signInButton").text("Log In");
+            $("#signInButton").click(SignIn);
+            _C1=false;
+        }
+    });
+
+    firebase.auth().onAuthStateChanged(user => {
+        if (user) {
+            checkPrem(true);
+            $("#signInButton").text("Log Out");
+            $("#signInButton").click(SignOut);
+        }
+        else {
+            $("#signInButton").text("Log In");
+            $("#signInButton").click(SignIn);
+            _C1=false;
+        }
+    });
+    function SignIn(){
+        window.open("/login","Log In",`scrollbars=no,resizable=no,status=no,location=no,toolbar=no,menubar=no,
+width=900px,height=800px,left=-1000,top=-1000`);
+    }
+    function SignOut(){
+        firebase.auth().signOut().then(function(){
+            console.log("Signed Out.");
+        }).catch(function(error){
+            console.log("Sign out error.");
+        });
+    }
+
+    function GetUser(triggerSignIn=true){
+        let user = firebase.auth().currentUser;
+        if(user){
+            return user.uid;
+        }else if(triggerSignIn){
+            SignIn();
+        }
+        return false;
+    }
+
+    var _B1 = bsslt;
+    var _A1 = asslt;
+    var _C1 = false;
+
+    async function verify(docs,user){
+        await checkPrem();
+        if(docs.size > _B1){
+            db.collection("/premiumUsers/watchList/members").add({
+                userRef: "users/" + user.uid,
+                provider: user.providerData[0],
+                type: "builds",
+                count: docs.size,
+                date: new Date()
+            });
+        }
+        
+        let count = 1;
+        docs.forEach((doc)=>{
+            if(count++ > _B1){
+                _GUI._DB.doc(doc.id).delete();
+            }
+            let n = doc.data().name;
+            let safe = safeify(n);
+            if(n != safe){
+                _GUI._DB.add({
+                        name: safe,
+                        data: doc.data().data
+                    }).then((d) => {
+                        _GUI._SavedBuilds[safe] = {
+                            id: d.id,
+                            data: doc.data().data,
+                            date: new Date()
+                        }
+                        _GUI._DB.doc(doc.id).delete();
+                    });
+            }
+        });
+    }
+
+    async function checkArt(docs,user){
+        await checkPrem();
+        if(docs.size > _A1){
+            db.collection("/premiumUsers/watchList/members").add({
+                userRef: "users/" + user.uid,
+                provider: user.providerData[0],
+                type: "artifacts",
+                count: docs.size,
+                date: new Date()
+            });
+            let count = 1;
+            docs.forEach((doc)=>{
+                if(count++ > _A1){
+                    _GUI._ArtifactCtrl._DB.doc(doc.id).delete();
+                }
+            });
+        }
+    }
+
+    async function checkPrem(force){
+        if(_C1 && !force){
+            return;
+        }
+        _C1 = true;
+        await db.doc("premiumUsers/userList/members/" + GetUser()).get().then((doc)=>{
+            if(doc.exists){
+                let dd = doc.data();
+                let ddd = JSON.parse(dd.product);
+                if(dd["isActive"]=="active" && new Date(dd["end_period"]*1000) > Date.now()){
+                    _B1 = (parseInt(ddd["Character Slots"]) ?? 0) + bsslt;
+                    _A1 = (parseInt(ddd["Artifact Slots"])  ?? 0) + asslt;
+                    if(ddd["Ad Free"] == "true"){
+                        $.each($(".adban"), function(idx, val){
+                            let ii = $(val).attr("id");
+                            $(val).replaceWith(div({id:ii,class:"adbancl"},""));
+                        });
+                    }
+                }else{    
+                    _B1 = bsslt;
+                    _A1 = asslt;
+                    freeNit();
+                }
+            }else{
+                _B1 = bsslt;
+                _A1 = asslt;
+                freeNit();
+            }
+        });
+    }
+
+    var __q = [];
+    function freeNit(){
+        for(let i in __q){
+            __q[i]();
+        }
+    }
+
+    function safeify(doc){
+        if(doc){
+            if(doc.name){
+                doc.name = doc.name.replaceAll("'", "&#39").replaceAll(/[\<\>\*]/g, "").replaceAll(/`/g, "").replaceAll(/\/{2}/g, "");
+                doc.data = doc.data.replaceAll("'", "&#39").replaceAll(/[\<\>\*]/g, "").replaceAll(/`/g, "").replaceAll(/\/{2}/g, "");
+            }else{
+                doc = doc.replaceAll("'", "&#39").replaceAll(/[\<\>\*]/g, "").replaceAll(/`/g, "").replaceAll(/\/{2}/g, "");
+            }
+        }
+        return doc;
+    }
+</script>    </head>
+
+    <body>
+        <div class="header">
+    <div class="headerLabel" id="homeButton"><a href="index.htm">Genshin Impact Calculator</a></div>
+    <div class="headerButtonContainer">
+        <div class="headerButton" id="calcButton"><a href="genshinCalc.htm">Calculator</a></div>
+        <div class="headerButton" id="aboutButton"><a href="about.htm">About</a></div>
+        <div class="headerButton" id="signInButton"></div>
+        <div class="headerButton" id="helpButton"><a href="help.htm" target="popup">Help</a></div>
+        <div class="headerAnchor">
+            <a class="widgetLogo-6zH6Nv" href="https://discord.gg/f5aCu4EHSN" target="_blank"></a>
+        </div>
+    </div>
+</div>
+        <div id="BannerTop" class="adban"></div>
+
+<script type="text/javascript">
+function btnn(){
+  window['nitroAds'].createAd('BannerTop', {
+    "refreshLimit": 10,
+    "refreshTime": 90,
+    "renderVisibleOnly": false,
+    "refreshVisibleOnly": true,
+    "sizes": [
+      [
+        "728",
+        "90"
+      ],
+      [
+        "320",
+        "50"
+      ]
+    ],
+    "mediaQuery": "(min-width: 1025px), (min-width: 768px) and (max-width: 1024px), (min-width: 320px) and (max-width: 767px)"
+  });
+}
+__q.push(btnn)
+btnn();
+</script>
+        <div class="container">
+            <div id="BannerLeft" class="adban"></div>
+
+<script type="text/javascript">
+function blnn(){
+  if (!window.matchMedia("screen and (max-width: 1024px)").matches) {
+    window['nitroAds'].createAd('BannerLeft', {
+      "refreshLimit": 10,
+      "refreshTime": 90,
+      "format": "sticky-stack",
+      "stickyStackLimit": 15,
+      "stickyStackSpace": 2.5,
+      "stickyStackOffset": 25,
+      "sizes": [
+        [
+          "300",
+          "250"
+        ],
+        [
+          "160",
+          "600"
+        ],
+        [
+          "300",
+          "600"
+        ]
+      ],
+      "mediaQuery": "(min-width: 1025px)"
+    });
+  }
+}
+__q.push(blnn);
+blnn();
+</script>            <div class="textContainer">
+                <span class="centerText">
+                    <h2>Damage Calculator Guide</h2>
+                    <div><a href="help.htm#faq">FAQ</a></div>
+                    <div><a href="help.htm#build-slots">Character Build Slots</a></div>
+                    <div><a href="https://genshinimpactcalculator.com/help.htm#basic-settings">Basic Settings</a></div>
+                    <div><a href="https://genshinimpactcalculator.com/help.htm#advanced-settings">Advanced Settings</a></div>
+                    <div><a href="https://genshinimpactcalculator.com/help.htm#reaction-mode">Reaction Mode</a></div>
+                    <div><a href="https://genshinimpactcalculator.com/help.htm#saving-loading">Saving/Loading</a></div>
+                    <div><a href="https://genshinimpactcalculator.com/help.htm#sharing-builds">Sharing Builds</a></div>
+                    <div><a href="https://genshinimpactcalculator.com/help.htm#optimizers">Optimizers</a></div>
+                    <div><a href="https://genshinimpactcalculator.com/help.htm#gui">GUI</a></div>
+                </span>
+                <h2 id="faq">Frequently Asked Questions</h2>
+<li>How do I save?</li>
+<ul>Make sure you're logged in and have adBlock disabled. <b>Right click</b> the portrait of the slot you want to 
+    save and click "Save As".
+</ul>
+<li>I need more slots!</li>
+<ul><u><a href="https://genshinimpactcalculator.com/premium.htm">Premium for donors here.</a></u>
+</ul>
+<li>Why is the calculator's damage different from my actual?</li>
+<ul><b>You probably forgot to check "Use Enemy Calc" (in <i>Enemy Modifiers</i>).</b> The calculator only calculates raw
+    damage by default, because damage changes depending on who you're hitting. If you want to know
+    how much damage you deal to a specific enemy, you need to check "Use Enemy Calc" and then designate
+    the enemy you are hitting with the appropriate settings (i.e. level).
+</ul>
+<li>I checked "Use Enemy Calc" but the damage is still wrong!</li>
+<ul>Make sure your artifacts/weapons are correct by comparing the displayed stats to
+    the in-game stats. Check to make sure all the buffs are properly toggled on or off, depending on
+    your situtation. Also make sure your talent levels are all correct and that the enemy's level
+    and resistances are properly set. Small discrepancies are likely rounding error. If you are
+    inbetween levels,
+    e.g. level 71, the calculator's values might be off by a bit since it only has data for every 10
+    levels (e.g. 60, 70, 80).
+    If there is still a discrepancy, please raise the issue in the discord with a detailed account of
+    the problem (i.e. share
+    your build).
+</ul>
+<li>X buff isn't being applied!</li>
+<ul>Make sure you've toggled the buff if it is applied conditionally. A large majority of buffs
+    are applied conditionally, and will thus <b>need to be toggled by clicking a checkbox</b>.
+</ul>
+<li>Why is the optimizer recommending X?</li>
+<ul>The optimizer only does the math for you (theoretical optimum) and then outputs a list of results. <b>The output is there so that the user can make sense of the results</b>. 
+    Oftentimes, the "best" result isn't practical (e.g. thundersoother, lavawalker). Other times, when the top results are tied, a random one is selected as the "best". <b> READ THE OUTPUT </b>
+</ul>
+<li>What is DPS/Total DPS?</li>
+<ul>The DPS stat is the normal attack DPS, which is based on the full normal attack combo time, without animation cancelling.
+    The Total DPS is normal attack DPS + any DPS from the bonus hits of weapon abilities.
+</ul>
+<li>What about Charge Attack 1/2?</li>
+<ul>Charge Attack 1 is the non-fully charged aimed shot for Bow users, or the spin attack for claymore users. 
+    Charge Attack 2 is is the fully charged aimed shot for Bow users, the final hit of a spin attack for claymore users, or just the charged
+    attack you'd expect for other weapon users. Note that for Ninguang, her damage per jade with her charge attack is Charge Attack 1, while her normal
+    charged attack is Charge Attack 2.
+</ul>                <h2 id="build-slots">Character Build Slots</h2>
+                <span>Left Click a character portrait or an empty slot to set the character for that slot.</span>
+                <li>A new empty slot will always be created after you set the character for the previous empty slot.
+                </li>
+                <li>All the settings, including <i>Enemy Modifiers</i> and <i>Party Buffs</i>, are saved <b>per Slot</b>
+                </li>
+                <li>You can Right Click (long press for mobile) a potrait and select <b>Copy to Empty Slot</b> to copy
+                    the
+                    build into the next empty slot (the new copy will be unnamed, so you will have to <b>Save As</b>
+                    manually
+                    before it can be shared).</li>
+
+                <h2 id="basic-settings">Basic Settings</h2>
+                <span>The Damage column will occasionally show options that can be checked or selected (to activate
+                    conditional passives/constellations/artifact set effects).</span>
+                <li>You can set your character's constellations and level and your stats and passives will be
+                    automatically
+                    populated. </li>
+                <li>Normal attack/Skill/Burst talent levels must be filled in manually (constellations that give +3 to
+                    a talent will not be applied automatically, you should add 3 to the talent level yourself).</li>
+                <li>Select your weapon, refinement level and weapon level. If the weapon has an ability, it will be
+                    applied at whatever refinement level you selected. Some ability effects will show extra options
+                    under the description of the ability (e.g. toggle conditional effects, set number of stacks of a
+                    buff).</li>
+                <li> Some weapon abilities give you <i>Bonus Hits</i>. The damage for those hits will be displayed
+                    under the <i>Bonus Hits</i> category. If your weapon has <i>Bonus Hits</i>, a <i>Total DPS</i> stat
+                    will
+                    be displayed in the Damage Column which is the Total of your normal attack <i>DPS</i> and the DPS
+                    from your <i>Bonus Hits</i> (i.e. the <i>Total DPS</i> is your total normal attack dps).
+                </li>
+                <li>Artifacts can be set by choosing an Artifact Set, which will determine the rarity (e.g. 3 star or 4
+                    star) that is
+                    available for that artifact piece (some sets are max 4 star while some are minimum 4 star) as well
+                    as the number of possible starting Initial Substats.</li>
+                <li>After selecting the rarity, the upgrade level of the artifact can be set which will determine
+                    the value of the artifact's main stat.
+                    You can also change the main stat type for artifacts that
+                    have more than one main stat type available.
+                </li>
+                <li>Artifact substats start off collapsed, but clicking the dropdown will expand the substat, allowing
+                    you to edit the substat's values.
+                </li>
+                <li>Artifact Set Effects will be shown in the <i>Artifact Effects</i> category in the damage column.
+                </li>
+                <li><b>REMEMBER:</b> Conditionally applied set effects will show extra options in the <i>Artifact
+                        Effects</i>
+                    category. Make sure to check them to manually active the conditional set effects.</li>
+                <li>Note: Substats cannot be of the same type as the artifact's main stat (the calculator currently does
+                    not check whether this is the case).
+                </li>
+                <li>Note: The Initial Substats setting does not do anything at the moment other than tell you the number
+                    of initial substats you can start with for a certain artifact rarity.
+                </li>
+                <h2 id="advanced-settings">Advanced Settings</h2>
+                <span>The Damage Calculator can also calculate actual damage dealt to an enemy (as opposed to
+                    theoretical damage) and consider buffs/effects provided
+                    by other members of you party.
+                </span>
+                <li>The <i>Enemy Modifiers</i> and <i>Party Buffs</i> Categories start off collapsed. Click the category
+                    to expand and view the settings.</li>
+                <li><i>Enemy Modifiers</i> allows you to enable <b>Use Enemy Calc</b>, which will make the damage values
+                    displayed in the Damage Column be the mitigated damage taken by the Enemy. The settings for the
+                    Enemy
+                    are contained here.</li>
+                <li><b>REMEMBER:</b> Defense or Resistance reduction won't affect the damage output unless you enable
+                    <b>Use
+                        Enemy Calc</b>.
+                </li>
+                <li>Elemental reactions such as vaporize or melt can be triggered by setting the enemy to <b>Affected
+                        By:</b>
+                    a certain element. If the character's damage element would trigger a reaction, the damage shown will
+                    reflect that. Note that
+                    if your normal attack combination is all elemental, the DPS will be artificially high, as if you
+                    triggered the melt or
+                    vaporize reaction on every hit (even though the CD for the reaction won't actually allow every hit
+                    to trigger the reaction). However, you will be able to see the damage of each hit if it triggered
+                    the reaction.</li>
+                <li>Note that certain reactions like overloaded or electrocharged are treated as separate hits. The
+                    damage
+                    for these reactions are showed separately under <i>Elemental Reactions</i> and not added to the
+                    damage
+                    values displayed for other stats.
+                </li>
+                <li><i>Party Buffs</i> contains settings for Elemental Resonance and any other buffs that could
+                    potentially
+                    be applied by party members. This includes other character buffs or debuffs as well as artifacts or
+                    weapons
+                    equipped by other party members.</li>
+                <li>Some buffs/debuffs provided by other characters are based on their stats or talent levels. If that
+                    is the case,
+                    there will be input boxes for you to enter those values in manually.
+                </li>
+                <li>Some buffs/debuffs are indented/nested within another toggleable effect. E.g. Bennett's inspiration
+                    field
+                    has two other buffs nested underneath it. The nested effects are effects that would only be applied
+                    if you
+                    had a certain constellation/passive that enabled those effects. The calculator doesn't check to make
+                    sure
+                    you are only checking the nested effects when the outer effect is checked, so you should do make
+                    sure to do that on your own.
+                </li>
+
+                <h2 id="reaction-mode">Reaction Mode</h2>
+                <li><b style="color:white;">"Reactionless"</b> damage is the average crit
+                    damage, not taking into
+                    account any elemental reactions (this is be the value that used to be in the
+                    "Average" column, unless the reaction type is Melt or Vaporize).
+                </li>
+                <li><b style="color:white;">"With Reaction"</b> damage is the average crit
+                    damage while taking into account any
+                    elemental reaction that is proc'd (for Melt or Vaporize this is the value
+                    used to be in the "Average" column).
+                </li>
+                <li>
+                    The new <b style="color:white;">"Average"</b> damage column displays the
+                    average damage based on the
+                    "Reaction Proc Chance". Thus, if I expect Fischl's "E" to proc an elemental
+                    reaction like Overloaded about 50% of the time,
+                    the "Elemental Reaction Proc Chance" will be 50. If I expect it to proc an
+                    elemental reaction every time, I would set it to 100. If this value is 0,
+                    then the calculator does not switch into "Reaction Mode".
+                </li>
+                <li><b style="color:white;">"Elemental Reaction Proc Chance"</b> is the % of
+                    hits I'd expect to proc an elemental reaction.
+
+                </li>
+                <li>
+                    <b style="color:white;">IMPORTANT:</b> Since the "Reaction Mode" relies on
+                    elemental reactions, "Use Enemy Calc"
+                    MUST be toggled on, in order for "Reaction Mode" to be of any use. The enemy
+                    MUST also be "Affected by:" a certain element.
+                </li>
+                <li>
+                    <b style="color:white;">When to use:</b> This setting is useful for
+                    figuring out whether you should focus
+                    on Elemental Mastery. This setting forces the optimizer to consider whether
+                    Elemental Mastery (and therefore Reaction Damage) will give you a bigger boost
+                    than attack based damage (e.g. atk%, crit, crit dmg, dmg bonuses).
+                </li>
+                <li>
+                    <b style="color:white;">How to use:</b> Even though this setting converts
+                    all damage stats to "Reaction Mode",
+                    its primary use is to allow you to focus on optimizing a single stat. For
+                    example:
+                    If I am trying to optimize Fischl's "E" skill, I would set the "Optimize For"
+                    setting to "Freikugel". Normally, the optimizer would focus on only atk, crit,
+                    or
+                    electro dmg values, since that is what is used to determine the "Freikugel"
+                    stat.
+                    However, by turning on "Reaction Mode" while the enemy is affected by Pyro
+                    Damage,
+                    the Optimizer will now add Elemental Mastery into the equation because the
+                    "Reaction Mode"
+                    "Freikugel" stat, now includes damage from Overloaded.
+                </li>
+                <li>
+                    The optimizer always optimizes the targeted stat's "Average" damage. So the
+                    optimizer basically assumes that
+                    the Target Stat will proc elemental reactions at a frequency of "Elemental
+                    Reaction Proc Chance".
+                </li>
+
+                <h2 id="saving-loading">Saving / Loading</h2>
+                <span>Right click (long press for mobile) a portrait and select <b>Save As</b> to save that slot or
+                    <b>Load Build</b> to load a saved build into that slot.</span>
+                <li>You must be logged in to save or load. Adblock must also be disabled (gotta pay for hosting
+                    somehow). Consider
+                    donating if you like the Damage Calculator and would like to keep seeing new features and updates.
+                </li>
+                <li>Each account is limited to 5 saves for now.
+                </li>
+                <li>You must name your build in order to save. You will be prompted to name the build when you <i>Save
+                        As</i>.</li>
+                <li>You will overwrite a previously saved build if you give the build the same name. </li>
+                <li>The Save/Load popup window will list all previously saved build names. Click a name to auto-fill the
+                    name when saving.</li>
+                <li>Note that some checkboxes for artifact buffs (in the damage column) may need to be rechecked
+                    manually. (Fix coming soon)</li>
+                <h2 id="sharing-builds">Sharing Builds</h2>
+                <span>Right click (long press for mobile) a portrait and select <b>Share Build</b> to share your
+                    build.</span>
+                <li>You can only share builds that have been named (i.e. slots that have been saved or loaded).</li>
+                <li>When you share a build, the build is automatically <i>Saved As</i> and overwrites the last save.
+                </li>
+                <li>Note that this means if you originally <b>Load Build</b> into a slot, then decide to work on another
+                    build, and change
+                    the character in that slot, sharing the build in that slot will overwrite the named build you
+                    originally loaded. </li>
+                <li>(e.g. Load "KeqingBuild1" into Slot 0 -> Change the character in Slot 0 to Diluc -> Work on Diluc's
+                    build -> Share Slot 0 -> "KeqingBuild1" will be overwritten
+                    with Diluc's data.</li>
+                <li>To avoid this, either remember to start new builds in new slots or <b>Save As</b> before using
+                    <b>Share Build</b>
+                </li>
+                <li>The link to your shared build enables people to <b>Load</b> your saved build. <b>If you delete
+                        the build you shared, people will not be able to load the build anymore.</b></li>
+                <li>However, this also means that any changes to the build will be reflected in the shared build other
+                    people see
+                    as long the build has the same name.
+                </li>
+
+                <h2 id="optimizers">Optimizers</h2>
+                <span>Select the appropriate settings for the optimizer and click the optimize button.</span>
+                <li>All optimizers will automatically equip the character with the optimized mods/items.</li>
+                <li>The optimizers will also output some of the top items/mods for you to see. (In the console under the
+                    optimize buttons)</li>
+                <li>Please check the outputted list to make sure the result makes sense for your situation. (e.g.
+                    weapons are treated
+                    as if giving the best possible bonus it can give -- so <i>Royal</i> Weapons are typically high on
+                    the optimizer
+                    because the optimizer is pretending that you have 100% crit).
+                <li>Often the best option will actually
+                    be second or third in ranking, or you may not have the BIS item. Please make sure you check
+                    the optimizer's output to decide what makes sense for you.
+                </li>
+                </li>
+                <li>The <i>Artifact</i> setting designates the artifact that will be optimized for <b>Optimize Artifact
+                        Mainstat</b>
+                    and <b>Optimize Substats</b>.</li>
+                <li>The <i>Optimize for</i> setting allows you to designate the <i>Stat</i> that you want to maximize.
+                    By default, this stat is either "Total DPS" if it exists, or "DPS" (i.e. normal attacks). You can
+                    select
+                    any other stat that's listed in the <i>Damage</i> column.</li>
+                <li>Note that <i>Optimize for</i> setting sometimes does not have all the stats listed
+                    in the <i>Damage</i> column. If certain stats from the passives are missing, change the
+                    character level back to 1 and reselect your level to refresh and fill the <i>Optimize for</i>
+                    setting. Same applies to constellations (e.g. refresh constellation).</li>
+                <h2 id="gui">GUI</h2>
+                <li>Categories in the Character Stats or Damage column can be collapsed by clicking on the Category
+                    Header (i.e. DPS, Normal Attack, Skill, Burst, Base Stats, Advanced Stats, etc..)</li>
+                <li>The <i>Enemy Modifiers</i> and <i>Party Buffs</i> sections start off collapsed. Click the Header to
+                    expand and view the options. The <i>Artifacts</i> Category and Weapon Ability Descriptions
+                    can both be collapsed.</li>
+                <li><i>Party Buffs</i> contains subcategories that can also be collapsed.</li>
+            </div>
+            <div id="BannerRight" class="adban"></div>
+
+<script type="text/javascript">
+function brnn(){
+  if (!window.matchMedia("screen and (max-width: 1024px)").matches) {
+    window['nitroAds'].createAd('BannerRight', {
+      "refreshLimit": 10,
+      "refreshTime": 90,
+      "format": "sticky-stack",
+      "stickyStackLimit": 15,
+      "stickyStackSpace": 2.5,
+      "stickyStackOffset": 25,
+      "sizes": [
+        [
+          "300",
+          "250"
+        ],
+        [
+          "160",
+          "600"
+        ],
+        [
+          "300",
+          "600"
+        ]
+      ],
+      "mediaQuery": "(min-width: 1025px)"
+    });
+  }
+}
+__q.push(brnn);
+brnn();
+</script>        </div>
+
+        <div id="BannerBottom" class="adban"></div>
+
+<script type="text/javascript">
+function bbnn(){
+  window['nitroAds'].createAd('BannerBottom', {
+    "refreshLimit": 10,
+    "refreshTime": 90,
+    "renderVisibleOnly": false,
+    "refreshVisibleOnly": true,
+    "sizes": [
+      [
+        "728",
+        "90"
+      ],
+      [
+        "320",
+        "50"
+      ]
+    ],
+    "mediaQuery": "(min-width: 1025px), (min-width: 768px) and (max-width: 1024px), (min-width: 320px) and (max-width: 767px)"
+  });
+}
+__q.push(bbnn);
+bbnn();
+</script>        <div class="footer">Copyright ImpactG368 &#169; 2020 | v3.0 Genshin Impact Damage Calculator | <a class="obviousLink" href="https://github.com/JenShin-368/GenshinImpactCalculator/issues">Report bugs or suggestions
+        to:
+        <span class="__cf_email__" data-cfemail="640d09140507100357525c240309050d084a070b09">[email&#160;protected]</span></a> |&nbsp; 
+        <a class="widgetLogo-small" href="https://discord.gg/f5aCu4EHSN" target="_blank"></a>
+        &nbsp;|&nbsp; 
+        <a href="https://genshinimpactcalculator.com/privacy.htm">Privacy Policy</a>&nbsp;|&nbsp;
+        <a href="https://genshinimpactcalculator.com/terms.htm">Terms of Service</a>
+        &nbsp;|
+        <span>
+            <form action="https://www.paypal.com/donate" method="post" target="_top">
+                <input type="hidden" name="hosted_button_id" value="N6XWK5QQB7CQG" />
+                <input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif" border="0"
+                    name="submit" title="PayPal - The safer, easier way to pay online!"
+                    alt="Donate with PayPal button" />
+                <img alt="" border="0" src="https://www.paypal.com/en_US/i/scr/pixel.gif" width="1" height="1" />
+            </form>
+        </span>
+        <span>
+            &emsp; <a href="https://twitter.com/DamageCalc?ref_src=twsrc%5Etfw" class="twitter-follow-button"
+                data-show-count="false">Follow @DamageCalc</a>
+            <script data-cfasync="false" src="cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+        </span>
+        <span data-ccpa-link="1"></span>
+        <div id="ncmp-consent-link"></div>
+    </div>
+    </body>
+
+
+
+</html>

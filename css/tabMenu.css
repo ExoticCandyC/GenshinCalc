@@ -1,0 +1,43 @@
+:root{
+    --TabMenu: rgb(14, 14, 14);
+}
+
+.tabMenuRow { 
+    display: flex;
+    flex-wrap: wrap;
+    box-shadow: 0 0 5px rgba(0,0,0,.5);
+    width: 100%;
+    border-top: 3px solid  rgba(0, 0, 0, 0);
+    background: var(--TabMenu);
+}
+
+.tabMenuItem {
+    padding: 1em;
+    cursor: pointer;
+}
+
+.tabMenuItem:hover {
+    background: rgba(255,255,255,.3);
+}
+
+.tabMenuItem:active {
+    background: rgba(255,255,255,.1);
+}
+
+.tabMenuItem[active='true']{
+    border-bottom: 3px solid var(--Highlight);
+}
+
+.tabItem:not([active='true']){
+    display:none;
+}
+
+.tabItem{
+    width: 100%;
+}
+
+
+.anchor{
+    width: 100%;
+    height: calc(3.3em + 6px);
+}

@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<title>Genshin Impact Damage Calculator</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+	<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+    <script src="jquery.mobile.custom.min.js"></script>
+
+    <script>   
+        var asslt = 20;
+        var bsslt = 5;
+    </script>
+
+    <meta name="viewport" content="width=device-width" />
+    <meta name='description'
+        content="Genshin Impact Damage Calculator that applies the correct damage formulas. Optimizer to help find the best in slot weapons, sets, and substats for more DPS. Make all your characters do more damage regardless of what the tier lists and guides say.">
+
+    <link type="text/css" rel="stylesheet" href="css/headerfooter.css">
+    <link type="text/css" rel="stylesheet" href="css/index.css">
+    <link type="text/css" rel="stylesheet" href="css/banners.css">
+    <link type="text/css" rel="stylesheet" href="css/tabMenu.css">
+
+	<script type="text/javascript">
+		window["nitroAds"] = window["nitroAds"] || {
+			createAd: function () {
+				window.nitroAds.queue.push(["createAd", arguments]);
+			},
+			queue: []
+		};
+	</script>
+    <script async src="https://s.nitropay.com/ads-606.js"></script>
+    
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+    <link rel="manifest" href="site.webmanifest">
+
+<script>    (function(c,l,a,r,i,t,y){        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);    })(window, document, "clarity", "script", "4fv118t67o");</script>
+    <!-- Firebase App -->
+<script src="https://www.gstatic.com/firebasejs/8.2.2/firebase-app.js"></script>
+
+<!-- Firebase products-->
+<script src="https://www.gstatic.com/firebasejs/8.2.2/firebase-analytics.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.2.2/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.2.2/firebase-firestore.js"></script>
+
+<!-- Firebase  Auth UI -->
+<script src="https://www.gstatic.com/firebasejs/ui/4.6.1/firebase-ui-auth.js"></script>
+<link type="text/css" rel="stylesheet" href="https://www.gstatic.com/firebasejs/ui/4.6.1/firebase-ui-auth.css" />
+<link type="text/css" rel="stylesheet" href="css/firebase.css" />
+
+<script>
+    // Firebase configuration
+    var firebaseConfig = {
+        apiKey: "AIzaSyDTd59P5LtcHrhzKtLNkOUmi3zEpgOf0OM",
+        authDomain: "genshinimpactcalculator.firebaseapp.com",
+        projectId: "genshinimpactcalculator",
+        storageBucket: "genshinimpactcalculator.appspot.com",
+        messagingSenderId: "333300908470",
+        appId: "1:333300908470:web:b48c8fe87e88f48e880117",
+    measurementId: "G-NJV8WFNJY5"
+    };
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+  firebase.analytics();
+
+    var db = firebase.firestore();
+</script>
+
+<script>
+    $(document).ready(()=>{
+        let u = GetUser(false);
+        if (u) {
+            checkPrem(true);
+            $("#signInButton").text("Log Out");
+            $("#signInButton").click(SignOut);
+        }
+        else {
+            $("#signInButton").text("Log In");
+            $("#signInButton").click(SignIn);
+            _C1=false;
+        }
+    });
+
+    firebase.auth().onAuthStateChanged(user => {
+        if (user) {
+            checkPrem(true);
+            $("#signInButton").text("Log Out");
+            $("#signInButton").click(SignOut);
+        }
+        else {
+            $("#signInButton").text("Log In");
+            $("#signInButton").click(SignIn);
+            _C1=false;
+        }
+    });
+    function SignIn(){
+        window.open("/login","Log In",`scrollbars=no,resizable=no,status=no,location=no,toolbar=no,menubar=no,
+width=900px,height=800px,left=-1000,top=-1000`);
+    }
+    function SignOut(){
+        firebase.auth().signOut().then(function(){
+            console.log("Signed Out.");
+        }).catch(function(error){
+            console.log("Sign out error.");
+        });
+    }
+
+    function GetUser(triggerSignIn=true){
+        let user = firebase.auth().currentUser;
+        if(user){
+            return user.uid;
+        }else if(triggerSignIn){
+            SignIn();
+        }
+        return false;
+    }
+
+    var _B1 = bsslt;
+    var _A1 = asslt;
+    var _C1 = false;
+
+    async function verify(docs,user){
+        await checkPrem();
+        if(docs.size > _B1){
+            db.collection("/premiumUsers/watchList/members").add({
+                userRef: "users/" + user.uid,
+                provider: user.providerData[0],
+                type: "builds",
+                count: docs.size,
+                date: new Date()
+            });
+        }
+        
+        let count = 1;
+        docs.forEach((doc)=>{
+            if(count++ > _B1){
+                _GUI._DB.doc(doc.id).delete();
+            }
+            let n = doc.data().name;
+            let safe = safeify(n);
+            if(n != safe){
+                _GUI._DB.add({
+                        name: safe,
+                        data: doc.data().data
+                    }).then((d) => {
+                        _GUI._SavedBuilds[safe] = {
+                            id: d.id,
+                            data: doc.data().data,
+                            date: new Date()
+                        }
+                        _GUI._DB.doc(doc.id).delete();
+                    });
+            }
+        });
+    }
+
+    async function checkArt(docs,user){
+        await checkPrem();
+        if(docs.size > _A1){
+            db.collection("/premiumUsers/watchList/members").add({
+                userRef: "users/" + user.uid,
+                provider: user.providerData[0],
+                type: "artifacts",
+                count: docs.size,
+                date: new Date()
+            });
+            let count = 1;
+            docs.forEach((doc)=>{
+                if(count++ > _A1){
+                    _GUI._ArtifactCtrl._DB.doc(doc.id).delete();
+                }
+            });
+        }
+    }
+
+    async function checkPrem(force){
+        if(_C1 && !force){
+            return;
+        }
+        _C1 = true;
+        await db.doc("premiumUsers/userList/members/" + GetUser()).get().then((doc)=>{
+            if(doc.exists){
+                let dd = doc.data();
+                let ddd = JSON.parse(dd.product);
+                if(dd["isActive"]=="active" && new Date(dd["end_period"]*1000) > Date.now()){
+                    _B1 = (parseInt(ddd["Character Slots"]) ?? 0) + bsslt;
+                    _A1 = (parseInt(ddd["Artifact Slots"])  ?? 0) + asslt;
+                    if(ddd["Ad Free"] == "true"){
+                        $.each($(".adban"), function(idx, val){
+                            let ii = $(val).attr("id");
+                            $(val).replaceWith(div({id:ii,class:"adbancl"},""));
+                        });
+                    }
+                }else{    
+                    _B1 = bsslt;
+                    _A1 = asslt;
+                    freeNit();
+                }
+            }else{
+                _B1 = bsslt;
+                _A1 = asslt;
+                freeNit();
+            }
+        });
+    }
+
+    var __q = [];
+    function freeNit(){
+        for(let i in __q){
+            __q[i]();
+        }
+    }
+
+    function safeify(doc){
+        if(doc){
+            if(doc.name){
+                doc.name = doc.name.replaceAll("'", "&#39").replaceAll(/[\<\>\*]/g, "").replaceAll(/`/g, "").replaceAll(/\/{2}/g, "");
+                doc.data = doc.data.replaceAll("'", "&#39").replaceAll(/[\<\>\*]/g, "").replaceAll(/`/g, "").replaceAll(/\/{2}/g, "");
+            }else{
+                doc = doc.replaceAll("'", "&#39").replaceAll(/[\<\>\*]/g, "").replaceAll(/`/g, "").replaceAll(/\/{2}/g, "");
+            }
+        }
+        return doc;
+    }
+</script>
+		<link rel="stylesheet" href="css/toast.css">
+		<link rel="stylesheet" href="css/range.css">
+		<link rel="stylesheet" href="css/genshinCalc.css">
+		<link rel="stylesheet" href="css/selectBox.css">
+		<link rel="stylesheet" href="css/contextMenu.css">
+		<link rel="stylesheet" href="css/rarity.css">
+
+				
+<script type="text/javascript" src="out/genshinCalc.js"></script><script type="text/javascript" src="out/data.js"></script><script src="https://unpkg.com/react@17/umd/react.production.min.js" crossorigin></script><script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js" crossorigin></script>
+		<script>
+			var _GUI = new GUIControl();
+			new DamageCalculator(_GUI);
+
+
+			function output(obj, clear, optimizer) {
+				let data = obj;
+				if (obj.constructor == Object) {
+					data = "";
+					let keys = Object.keys(obj).sort((a, b) => {
+						return b - a;
+					});
+					for (let index in keys) {
+						let i = keys[index];
+						data += "<tr><td>" + split(obj[i], optimizer, i) + "</td><td class='optimizedOutputVal'>" + Number.parseFloat(i).toLocaleString(undefined, { maximumFractionDigits: 2 }) + "</td></tr>";
+					}
+				} else {
+					data = "<tr><td>" + data + "</td></tr>";
+				}
+
+				if (clear) {
+					$('#console').html(data);
+				} else {
+					$('#console').append(data);
+				}
+
+				function split(strOrArr, optimizer, key) {
+					if (optimizer) {
+						if (strOrArr.length > 0) {
+							let res = "";
+							for (let i in strOrArr) {
+								let op = merge(strOrArr[i]);
+								res += span({ class: "optimizedOption", key: key, index: i }, op) + "<br>&emsp;";
+							}
+							return res;
+						}
+					} else {
+						if (strOrArr.length > 0) {
+							return "<span>" + strOrArr.join("</span>\n\t<span>").trim() + "</span>";
+						}
+					}
+					return strOrArr;
+				}
+
+				function merge(options) {
+					if (options.constructor == Array) {
+						let res = {};
+						let max = 0;
+						for (let i in options) {
+							if (res[options[i]])
+								res[options[i]]++;
+							else
+								res[options[i]] = 1;
+							if (res[options[i]] > max)
+								max = res[options[i]];
+						}
+						if (max > 1) {
+							let str = "";
+							for (let i in res) {
+								let translated = Translate(res[i], "statTypes", Translate(res[i], "weaponData", Translate(res[i], "artifactData")));
+								str += i + " x " + translated + "; ";
+							}
+							return str;
+						}
+					}
+					return Translate(options, "statTypes", Translate(options, "weaponData", Translate(options, "artifactData")));
+				}
+			}
+
+			$(".tooltip").on("click", function (e) {
+				return false;
+			});
+
+		</script>
+
+	</head>
+
+	<body>
+
+		<div class="header">
+    <div class="headerLabel" id="homeButton"><a href="https://genshinimpactcalculator.com/index.htm">Genshin Impact Calculator</a></div>
+    <div class="headerButtonContainer">
+        <div class="headerButton" id="calcButton"><a href="https://genshinimpactcalculator.com/genshinCalc.htm">Calculator</a></div>
+        <div class="headerButton" id="aboutButton"><a href="https://genshinimpactcalculator.com/about.htm">About</a></div>
+        <div class="headerButton" id="signInButton"></div>
+        <div class="headerButton" id="helpButton"><a href="https://genshinimpactcalculator.com/help.htm" target="popup">Help</a></div>
+        <div class="headerAnchor">
+            <a class="widgetLogo-6zH6Nv" href="https://discord.gg/f5aCu4EHSN" target="_blank"></a>
+        </div>
+    </div>
+</div>		<script>$("#calcButton").attr("active", true);</script>
+
+		<div id='fullScreenContainer'>
+			<div id="BannerTop" class="adban"></div>
+
+<script type="text/javascript">
+function btnn(){
+  window['nitroAds'].createAd('BannerTop', {
+    "refreshLimit": 10,
+    "refreshTime": 90,
+    "renderVisibleOnly": false,
+    "refreshVisibleOnly": true,
+    "sizes": [
+      [
+        "728",
+        "90"
+      ],
+      [
+        "320",
+        "50"
+      ]
+    ],
+    "mediaQuery": "(min-width: 1025px), (min-width: 768px) and (max-width: 1024px), (min-width: 320px) and (max-width: 767px)"
+  });
+}
+__q.push(btnn)
+btnn();
+</script>			<div id="fullLeftBannerParent" class="adban">
+</div>
+<div id="fullRightBannerParent" class="adban">
+</div>
+
+<script type="text/javascript">
+function LoadBanners(){
+  window['nitroAds'].createAd('fullLeftBanner', {
+    "refreshLimit": 10,
+    "refreshTime": 90,
+    "format": "sticky-stack",
+    "stickyStackLimit": 15,
+    "stickyStackSpace": 2.5,
+    "stickyStackOffset": 25,
+    "sizes": [
+      [
+        "160",
+        "600"
+      ]
+    ],
+    "mediaQuery": "(min-width: 1920px)"
+  });
+
+  window['nitroAds'].createAd('fullRightBanner', {
+    "refreshLimit": 10,
+    "refreshTime": 90,
+    "format": "sticky-stack",
+    "stickyStackLimit": 15,
+    "stickyStackSpace": 2.5,
+    "stickyStackOffset": 25,
+    "sizes": [
+      [
+        "160",
+        "600"
+      ]
+    ],
+    "mediaQuery": "(min-width: 1920px)"
+  });
+}
+__q.push(LoadBanners);
+</script>			<div id='siteContainer'>
+				<div id="contextMenuContainer"></div>
+				<div id="predictorToolTip"></div>
+
+				<div id="saveMenu" class="popupMenu">
+					<div class="menuTitle"></div>
+					<div class="menuInputRow">
+						<label class="saveMenuLabel" translate="true">Save as:</label>
+						<input id="saveNameInput" name="saveName">
+						<button class="gbutton" id="saveButton" for="saveName" translate="true">Save</button>
+					</div>
+					<div class="listMenu">
+						<div class="saveMenuLabel hasToolTip"><span translate="true">Saved Builds:</span>
+							<div class="tooltip">Warning: Saving a build with the same name will overwrite the
+								previously saved build!</div>
+						</div>
+						<div id="savedList" class="popupList">
+
+						</div>
+					</div>
+				</div>
+
+
+				<div id="loadMenu" class="popupMenu">
+					<div class="saveMenuLabel" translate="true">Saved Builds:</div>
+					<div id="loadList" class="popupList">
+					</div>
+				</div>
+
+				<div id="shareMenu" class="popupMenu">
+					<div class="shareMenuHeader">
+						<h3><span translate="true">Share your build in Slot </span><span id="shareSlotNum"></span>
+							<div class="" style="float:right">X</div>
+						</h3>
+					</div>
+					<div class="shareMenuText">The share will be linked to your build saved as "<span style='color:red;'
+							id="shareSaveName"></span>".</div>
+					<div class="shareMenuText">Overwriting your saved build will automatically update
+						the build that people see.</div>
+					<br>
+					<div>You can enter a description and credits here (people will see your description when they load
+						the build):</div>
+					<textarea id="shareDesc"></textarea>
+					<div class="shareMenuButtonRow">
+						<button id="shareWithoutDesc" class="gbutton dosharebtn" translate="true">Share Build without
+							Description</button>
+						<button id="shareWithDesc" class="gbutton dosharebtn" translate="true">Share Build</button>
+					</div>
+				</div>
+				<div id="descPopup" class="popupMenu">
+
+				</div>
+				<div id="newsPopup" class="popupMenu">
+					<script>
+_GUI.version = 3.4;
+</script>
+
+<b><i>Please disable adBlock if you like the calculator.</i> Note: Header is bugged when adblock is enabled (covers part of the calculator). Disable to fix.</b>
+<br><br>
+<b>Log in</b> and right click on the portraits to save.
+<br>
+<br>
+<br>
+<b style="font-size:2em;">New Characters Released: 
+Raiden Shogun,
+Sangonomiya Kokomi,
+Kujou Sara; New Items: Engulfing Lightning, The Catch, Luxurious Sea-Lord</b>
+
+<h3>v3.4 <b style="font-size:2em;">New Characters</b></h3><br>
+<div class="indent">
+NOTE: DPS values for new characters currently incorrect because I do not have their Attack Speed values yet.
+Added Characters:
+Raiden Shogun
+Sangonomiya Kokomi
+Kujou Sara
+</div>
+
+
+<h3>v3.3 <b style="font-size:2em;">New Characters</b></h3><br>
+<div class="indent">
+Weapon Optimizer Bug fixed.
+Yoimiya and Sayu released.
+</div>
+
+<h3>v3.2 <b style="font-size:2em;">EM Update</b></h3><br>
+<div class="indent">
+New Weapons Added!
+Ayaka Infusion Fixed.
+</div>
+
+<h3>v3.1 <b style="font-size:2em;">Premium for donors is out!</b></h3><br>
+<div class="indent">
+Subscribed donors can now recieve ad free use of calculator and more save slots.<br>
+<u><a href="https://genshinimpactcalculator.com/premium.htm">Premium for donors</a></u><br><br>
+New Language Available in UI Settings: <b>Русский язык</b>
+<br>
+Translated by: lex
+</div>
+
+<h3>v3.0 <b style="font-size:2em;">Artifact storage is out!</b></h3><br>
+<div class="indent">
+You can now save your artifacts and optimize your build with the artifacts in your storage!<br>
+Find it in the <b>Artifacts</b> Tab. Note that you may need to disable your popup/adblocker (opens as popup).<br><br>
+<b>Click the Artifact Icons, <div class="icon" style="width: 62px;height:62px;" icon="Flower"></div> to Load Saved Artifacts</b>
+
+<br><br>
+<img src="img/ArtifactClickGuide.png">
+<br>
+You can <b>Ctrl+V</b> or drag and drop screenshots of your artifacts to scan them into the Artifact Storage <i>(fullscreen screenshots are recommended over snippets to allow
+the scanner to adjust the resolution of your screenshot)</i>. 
+<br>
+
+<img src="img/ArtifactScanGuide.png">
+</div>
+
+<h3>Old News</h3><br>
+<div class="indent">
+New Language Available in UI Settings: <b>zh-CN(简体中文)</b>
+<br>
+Translated by: Whyere
+<br>
+<br>
+Added <b>Show Value of Substats</b> -- Shows the marginal benefit of each substat (i.e. the % increase to DPS
+that a min or max roll of ATK% will add to your build). 
+<br><br>
+<b>Changing the Optimizer's target</b> will change
+the focus to another stat (i.e. targeting "Explosion DMG" for Amber will change the focus to Amber's
+Elemental Skill)
+</div>
+
+<h3>Notes</h3><br>
+<div class="indent">
+    Save slots for Builds are currently limited to 5.
+    Save slots for Artifacts are limited to 20.
+    <br>
+    After release, the save slots may be increased depending on
+    how far the usage is from database's quota.
+    <br><br>
+    <b>Feedback, suggestions, and bug reports are welcome!</b>
+    Check out the <a class='obviousLink' target='blank' href='https://github.com/JenShin-368/GenshinImpactCalculator/issues'>gitHub</a>
+     or <a class='obviousLink' target='blank' href='https://discord.gg/f5aCu4EHSN'>Discord</a>!
+</div>					<div>
+						<label><span translate="true">Don't show again</span>
+							<input id="noNews" type="checkbox" onchange="_GUI.ToggleNews(this)">
+						</label>
+					</div>
+				</div>
+				<div id="graphPopup" class="popupMenu">
+					<div id="graphContainer"></div>
+				</div>
+				<div id="artifactPopupDisplay" class="popupMenu">
+
+				</div>
+
+				<div id="charSelectGroup">
+				</div>
+				<div id='statsContainer'>
+					<div class="statsTitle">Stats</div>
+				</div>
+				<div id='calcContainer'>
+					<div class="anchor">
+						<div id="calcTabMenu" class="tabMenuRow" for="calcTabContainer" linked="optimizerContainer">
+							<div class="tabMenuItem" for="characterTab" active="true" translate="true">Character</div>
+							<div class="tabMenuItem" for="artifactTab" translate="true">Artifacts</div>
+							<div class="tabMenuItem" for="partyTab" translate="true">Party Buffs</div>
+							<div class="tabMenuItem" for="otherTab" translate="true">Advanced</div>
+							<div class="tabMenuItem" for="helpTab" translate="true">Help</div>
+							<div class="tabMenuItem" for="uiTab" translate="true">UI</div>
+						</div>
+					</div>
+					<div class="filler"></div>
+					<div class="statsHeader" for="optimizerTab" translate="true">Optimizer</div>
+					<div id="optimizerContainer" class="optimizeContainer damageGroup tabContainer" for="optimizerTab">
+						<div class="optimizerRow">
+							<div class="optimizefor hasToolTip">
+								<span translate="true">Target:</span>
+								<select id="optimizeTarget">
+								</select>
+								<div class="tooltip">
+									Optimizer will focus on the stat targeted here. The focused stat will be outlined
+									in the Damage column. The prediction values in the artifact display are based on
+									the optimizer target set here.
+								</div>
+							</div>
+							<div class="optimizerOption">
+								<label>
+									<input id="autoEquip" type="checkbox" checked>
+									<span translate="true">Auto Equip</span>
+								</label>
+							</div>
+							<div class="optimizerOption">
+								<span>&emsp;</span>
+								<button id="showSubstatBenefit" class="gbutton" translate="true">Show Value of
+									Substats</button>
+							</div>
+						</div>
+						<div class="tabItem" for="characterTab" active="true">
+							<button id="optimizeWeapon" class="hasToolTip gbutton optimizerOption"> <span
+									translate="true">Optimize Weapon</span>
+								<div class="tooltip">Determines the optimal weapon. Optimizer will use the currently
+									set
+									weapon
+									level and refine level for all weapons when optimizing. Optimizer currently only
+									optimizes
+									for
+									Total DPS (if it exists) or DPS.
+									Weapons that have conditionally activated effects will have those effects
+									enabled during
+									optimization.
+									Weapons that have stackable buffs will assume maximum stacks during
+									optimization.
+								</div>
+							</button>
+						</div>
+						<div class="tabItem" for="artifactTab">
+							<div class="optimizerRow">
+								<div class="optimizerOption">
+									<span translate="true">Artifact:</span>
+									<select id="artifactTarget">
+									</select>
+								</div>
+							</div>
+							<div class="optimizerRow">
+								<button id="optimizeArtifact" class="hasToolTip gbutton"><span translate="true">Optimize
+										Artifact Mainstat</span>
+									<div class="tooltip">Determines the optimal Main Stat for the selected artifact.
+										Optimizer
+										will
+										assume the Main Stat has been maxed out and optimizes for targeted stat.</div>
+								</button>
+								<button id="optimizeSubstat" class="hasToolTip gbutton"><span translate="true">Optimize
+										Substats</span>
+									<div class="tooltip">Determines the optimal substat combination. Note that the
+										optimizer
+										will assume a base roll for each substat.
+									</div>
+								</button>
+								<button id="optimizeFromDB" class="hasToolTip gbutton"><span translate="true">Optimize
+										From Storage</span>
+									<div class="tooltip">Determines the optimal artifact to equip, for the selected
+										slot, based on the artifacts that are available in your storage.</div>
+								</button>
+							</div>
+							<div class="optimizerRow">
+								<button id="optimizeAllFromDB" class="hasToolTip gbutton"><span
+										translate="true">Optimize All Artifacts From Storage</span>
+									<div class="tooltip">Determines the combination of optimal artifacts to equip in
+										every slot based on all the artifacts that are available in your storage.</div>
+								</button>
+							</div>
+							<div class="optimizerRow">
+								<button id="optimizeSets" class="hasToolTip gbutton"><span translate="true">Optimize
+										Set Effects</span>
+									<div class="tooltip">Determines the optimal artifact 4-piece or pair of 2-piece
+										sets.
+										Sets that have conditionally activated effects will have those effects enabled
+										during
+										optimization. Optimizer will only display the top 9 combinations. If the
+										combinations
+										are tied and there are more than 10 pairs tied, it won't be displayed (b/c it's
+										likely
+										useless).
+									</div>
+								</button>
+							</div>
+						</div>
+					</div>
+					<div id="calcTabContainer" class="tabContainer">
+						<div id="characterTab" class="tabItem" active="true">
+
+							<div class="statsHeader" for="charInfoInput" translate="true">Character</div>
+							<div class="damageGroup" for="charInfoInput">
+								<div class="optionContainerC">
+									<div class="optionGroup">
+										<label for="clevel" translate="true">
+											Constellation:
+										</label>
+										<input name="clevel" id="constellationSelect"
+											oninput="UpdateConstellationLevel(this)" type="number" min=0 max=6 value=0>
+										</input>
+									</div>
+									<div class="optionGroup">
+										<label for="clevel" translate="true">
+											Lvl:
+										</label>
+										<select name="charLvl" id="charLvlSelect" onchange="UpdateCharLevel(this)">
+										</select>
+									</div>
+								</div>
+								<div class="optionContainerD">
+									<div class="optionGroup">
+										<label for="nlvl" translate="true">
+											Attack Lvl:
+										</label>
+										<input name="nlvl" id="normalLvlSelect" oninput="UpdateNormalLevel(this)"
+											type="number" min=1 max=15 value=1>
+										</input>
+									</div>
+									<div class="optionGroup">
+										<label for="slvl" translate="true">
+											Skill Lvl:
+										</label>
+										<input name="slvl" id="skillLvlSelect" oninput="UpdateSkillLevel(this)"
+											type="number" min=1 max=15 value=1>
+										</input>
+									</div>
+									<div class="optionGroup">
+										<label for="blvl" translate="true">
+											Burst Lvl:
+										</label>
+										<input name="blvl" id="burstLvlSelect" oninput="UpdateBurstLevel(this)"
+											type="number" min=1 max=15 value=1>
+										</input>
+									</div>
+								</div>
+							</div>
+
+							<div class="statsHeader" for="weaponContainer" translate="true">Weapon</div>
+							<div class="damageGroup" for="weaponContainer">
+								<div class="optionContainerW">
+									<div class="optionGroup">
+										<select name="weapon" id="weaponSelect" onchange="UpdateWeaponName(this)">
+										</select>
+									</div>
+									<div class="optionGroup">
+										<label for="clevel" translate="true">
+											Refine:
+										</label>
+										<input name="weaponRefine" id="weaponRefineSelect"
+											oninput="UpdateWeaponRefine(this)" type="number" min=1 max=5 value=1>
+										</input>
+									</div>
+									<div class="optionGroup">
+										<label for="clevel" translate="true">
+											Lvl:
+										</label>
+										<select name="weaponLvl" id="weaponLvlSelect"
+											onchange="UpdateWeaponLevel(this)">
+										</select>
+									</div>
+								</div>
+
+								<div class="optionContainer2">
+
+									<div class="optionGroup">
+										<span class="spanLabel" translate="true">Wep Attack:</span>
+										<span class="spanVal" id="watk"></span>
+									</div>
+									<div class="optionGroup">
+										<span class="spanLabel" translate="true">Wep Substat:</span>
+										<span class="spanVal" id="wsub"></span>
+									</div>
+									<div class="optionGroup">
+										<span class="spanVal" id="wsubval"></span>
+									</div>
+								</div>
+
+								<div id="WeaponAbilityContainer">
+
+								</div>
+
+							</div>
+
+							<div class="enemyEffects">
+								<div class="statsHeader" for="enemyEffectsContainer" translate="true">Enemy Modifiers
+								</div>
+								<div class="damageGroup enemyContainer" for="enemyEffectsContainer">
+									<div class="enemyOptionStatLine">
+										<div id="hitEnemyCtr">
+											<label class="hasToolTip">
+												<input name="hitEnemy" type="checkbox" oninput="ToggleHitEnemy(this)">
+												<span translate="true">Use Enemy Calc</span>
+												<div class="tooltip">Outputs damage taken by an enemy instead of
+													unmitigated
+													damage.
+													Note that Enemy Modifiers are only taken into account if this is
+													checked.
+												</div>
+											</label>
+										</div>
+									</div>
+									<div class="enemyOptionStat">
+										<select id="enemyElementSelect" oninput="UpdateEnemyType(this);"></select>
+										<span translate="true">Affected by:</span>
+										<div class="enemySwitch" id="enemyElementGroup">
+
+										</div>
+									</div>
+									<div class="enemyOptionStat">
+										<select id="enemySelect" oninput="UpdateEnemySelect(this);"></select>
+										<span translate="true">Enemy Lvl:</span>
+										<input name="eLvl" id="enemyLvlSelect" oninput="UpdateEnemyLevel(this);"
+											type="number" min="1" max="100" value="1">
+									</div>
+									<div class="enemyOptionStat">
+										<span translate="true">Enemy Res:</span>
+										<div id="enemyResGroup">
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div id="artifactTab" class="tabItem">
+							<div class="statsHeader" for="artifacts" translate="true">
+								Artifacts
+							</div>
+							<div class="artifactsContainer damageGroup" for="artifacts">
+							</div>
+						</div>
+						<div id="partyTab" class="tabItem">
+							<div class="partyBuffSection">
+								<div class="statsHeader hasToolTip" for="partyBuffsContainer">
+									<span translate="true">Party Buffs</span>
+									<div class="tooltip">
+										All buffs in this section should only be checked if being applied by ANOTHER
+										character
+										to
+										the current character you are using the calculator for.
+									</div>
+								</div>
+								<div class="damageGroup partyBuffs" for="partyBuffsContainer">
+
+									<div class="statsHeader" for="resonanceBuff">
+										<div class="hasToolTip"><span translate="true">Elemental Resonance</span>
+											<div class="tooltip">Protective Canopy is always selected by default. Max of
+												2
+												resonance
+												buffs, since party size is max 4. If protective Canopy is active,
+												no other resonance is possible.
+											</div>
+										</div>
+									</div>
+									<div class="damageGroup" id="resonanceContainer" for="resonanceBuff">
+
+									</div>
+									<div id="partyBuffContainer">
+										<div class="partyBuffSeparator statsHeader" for="ElementalReactionPartyBuffs"
+											translate="true">
+											Elemental Reaction
+										</div>
+										<div class="damageGroup" for="ElementalReactionPartyBuffs"
+											style="display:none;"></div>
+
+										<div class="partyBuffSeparator statsHeader" for="CharacterPartyBuffs"
+											translate="true">
+											Party Member Abilities
+										</div>
+										<div class="damageGroup" for="CharacterPartyBuffs" style="display:none;"></div>
+
+										<div class="partyBuffSeparator statsHeader" for="ArtifactPartyBuffs"
+											translate="true">
+											Artifact Buffs
+										</div>
+										<div class="damageGroup" for="ArtifactPartyBuffs" style="display:none;"></div>
+
+										<div class="partyBuffSeparator statsHeader" for="WeaponPartyBuffs"
+											translate="true">
+											Weapon Buffs
+										</div>
+										<div class="damageGroup" for="WeaponPartyBuffs" style="display:none;"></div>
+									</div>
+								</div>
+							</div>
+							<div class="manualBuffSection">
+								<div class="statsHeader" for="manualBuffs" translate="true">Manual Input Buffs / Food
+									Buffs</div>
+								<div class="damageGroup" for="manualBuffs">
+									<table id="manualInputBuffs">
+										<tr>
+											<th class="hasToolTip"><span translate="true">Manually Input Buffs</span>
+												<div class="tooltip">These buffs
+													will not be saved to your build save file.</div>
+											</th>
+											<th><button onclick="_GUI.AddManualBuff()" translate="true">Add
+													Buff</button></th>
+											<th><button onclick="_GUI.AddFoodBuff()" translate="true">Add
+													Food</button></th>
+											<th><button onclick="_GUI.ApplyManualBuffs()" translate="true">Apply
+													Buffs</button></th>
+										</tr>
+									</table>
+								</div>
+							</div>
+						</div>
+						<div id="otherTab" class="tabItem">
+							<div class="advancedSection">
+								<div class="statsHeader" for="advancedContainer" translate="true">
+									Reaction Mode
+								</div>
+								<div class="damageGroup advancedSettings" for="advancedContainer">
+									<label>
+										<input type="number" min=0 max=100 id="reactionProcChance" value="50"
+											onchange="SetReactionModeProcChance(this)">
+
+										<span translate="true">% -- Elemental Reaction Proc Chance</span>
+									</label>
+									<div class="reactionModeContainer">
+										<label style="color:white;">
+											<input type="checkbox" id="useReactionMode"
+												onchange="SetReactionModeProcChance(this)">
+											<spantranslate="true">Switch to </span><i translate="true">Reaction Mode</i>
+										</label>
+										<label>
+											- (for advanced users) This mode changes the Damage Column to display in
+											"Reaction
+											Mode".
+											In this mode, the "Non-Crit" and "Crit" columns become "Reactionless" and
+											"With Reaction".
+											<li><span style="color:white;">"Reactionless"</span> damage is the average
+												crit
+												damage, not taking into
+												account any elemental reactions (this is be the value that used to be in
+												the
+												"Average" column, unless the reaction type is Melt or Vaporize).
+											</li>
+											<li><span style="color:white;">"With Reaction"</span> damage is the average
+												crit
+												damage while taking into account any
+												elemental reaction that is proc'd (for Melt or Vaporize this is the
+												value
+												used to be in the "Average" column).
+											</li>
+											<li>
+												The new <span style="color:white;">"Average"</span> damage column
+												displays the
+												average damage based on the
+												"Reaction Proc Chance". Thus, if I expect Fischl's "E" to proc an
+												elemental
+												reaction like Overloaded about 50% of the time,
+												the "Elemental Reaction Proc Chance" will be 50. If I expect it to proc
+												an
+												elemental reaction every time, I would set it to 100. If this value is
+												0,
+												then the calculator does not switch into "Reaction Mode".
+											</li>
+											<li><span style="color:white;">"Elemental Reaction Proc Chance"</span> is
+												the % of
+												hits I'd expect to proc an elemental reaction.
+
+											</li>
+											<li>
+												<span style="color:white;">IMPORTANT:</span> Since the "Reaction Mode"
+												relies on
+												elemental reactions, "Use Enemy Calc"
+												MUST be toggled on, in order for "Reaction Mode" to be of any use. The
+												enemy
+												MUST also be "Affected by:" a certain element.
+											</li>
+											<li>
+												<span style="color:white;">When to use:</span> This setting is useful
+												for
+												figuring out whether you should focus
+												on Elemental Mastery. This setting forces the optimizer to consider
+												whether
+												Elemental Mastery (and therefore Reaction Damage) will give you a bigger
+												boost
+												than attack based damage (e.g. atk%, crit, crit dmg, dmg bonuses).
+											</li>
+											<li>
+												<span style="color:white;">How to use:</span> Even though this setting
+												converts
+												all damage stats to "Reaction Mode",
+												its primary use is to allow you to focus on optimizing a single stat.
+												For
+												example:
+												If I am trying to optimize Fischl's "E" skill, I would set the "Optimize
+												For"
+												setting to "Freikugel". Normally, the optimizer would focus on only atk,
+												crit,
+												or
+												electro dmg values, since that is what is used to determine the
+												"Freikugel"
+												stat.
+												However, by turning on "Reaction Mode" while the enemy is affected by
+												Pyro
+												Damage,
+												the Optimizer will now add Elemental Mastery into the equation because
+												the
+												"Reaction Mode"
+												"Freikugel" stat, now includes damage from Overloaded.
+											</li>
+											<li>
+												The optimizer always optimizes the targeted stat's "Average" damage. So
+												the
+												optimizer basically assumes that
+												the Target Stat will proc elemental reactions at a frequency of
+												"Elemental
+												Reaction Proc Chance".
+											</li>
+										</label>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div id="helpTab" class="tabItem">
+							<div id="FAQ">
+								<h2 id="faq">Frequently Asked Questions</h2>
+<li>How do I save?</li>
+<ul>Make sure you're logged in and have adBlock disabled. <b>Right click</b> the portrait of the slot you want to 
+    save and click "Save As".
+</ul>
+<li>I need more slots!</li>
+<ul><u><a href="https://genshinimpactcalculator.com/premium.htm">Premium for donors here.</a></u>
+</ul>
+<li>Why is the calculator's damage different from my actual?</li>
+<ul><b>You probably forgot to check "Use Enemy Calc" (in <i>Enemy Modifiers</i>).</b> The calculator only calculates raw
+    damage by default, because damage changes depending on who you're hitting. If you want to know
+    how much damage you deal to a specific enemy, you need to check "Use Enemy Calc" and then designate
+    the enemy you are hitting with the appropriate settings (i.e. level).
+</ul>
+<li>I checked "Use Enemy Calc" but the damage is still wrong!</li>
+<ul>Make sure your artifacts/weapons are correct by comparing the displayed stats to
+    the in-game stats. Check to make sure all the buffs are properly toggled on or off, depending on
+    your situtation. Also make sure your talent levels are all correct and that the enemy's level
+    and resistances are properly set. Small discrepancies are likely rounding error. If you are
+    inbetween levels,
+    e.g. level 71, the calculator's values might be off by a bit since it only has data for every 10
+    levels (e.g. 60, 70, 80).
+    If there is still a discrepancy, please raise the issue in the discord with a detailed account of
+    the problem (i.e. share
+    your build).
+</ul>
+<li>X buff isn't being applied!</li>
+<ul>Make sure you've toggled the buff if it is applied conditionally. A large majority of buffs
+    are applied conditionally, and will thus <b>need to be toggled by clicking a checkbox</b>.
+</ul>
+<li>Why is the optimizer recommending X?</li>
+<ul>The optimizer only does the math for you (theoretical optimum) and then outputs a list of results. <b>The output is there so that the user can make sense of the results</b>. 
+    Oftentimes, the "best" result isn't practical (e.g. thundersoother, lavawalker). Other times, when the top results are tied, a random one is selected as the "best". <b> READ THE OUTPUT </b>
+</ul>
+<li>What is DPS/Total DPS?</li>
+<ul>The DPS stat is the normal attack DPS, which is based on the full normal attack combo time, without animation cancelling.
+    The Total DPS is normal attack DPS + any DPS from the bonus hits of weapon abilities.
+</ul>
+<li>What about Charge Attack 1/2?</li>
+<ul>Charge Attack 1 is the non-fully charged aimed shot for Bow users, or the spin attack for claymore users. 
+    Charge Attack 2 is is the fully charged aimed shot for Bow users, the final hit of a spin attack for claymore users, or just the charged
+    attack you'd expect for other weapon users. Note that for Ninguang, her damage per jade with her charge attack is Charge Attack 1, while her normal
+    charged attack is Charge Attack 2.
+</ul>								<li>Uhh..??? Fgsfds?</li>
+								<ul><span>
+										<a href="https://genshinimpactcalculator.com/help.htm" target="popup" class="obviousLink">Here</a></span>
+									and
+									<span>
+										<a href="https://discord.gg/f5aCu4EHSN" target="popup"
+											class="obviousLink">Here</a>
+									</span>
+								</ul>
+							</div>
+						</div>
+						<div id="uiTab" class="tabItem">
+							<div class="uioptioncontainer">
+								<label><input id="noGenshinFont" type="checkbox" onchange="_GUI.SetFont()">Don't use
+									Genshin Font</label>
+
+							</div>
+							<div class="uioptioncontainer">
+								<label translate="true">Language</label>
+								<select id="languageSelect" onchange="_GUI.SetLang(this.value)">
+									<option value="EN">English</option>
+									<option value="zh-CN">简体中文</option>
+									<option value="RU">Русский язык</option>
+								</select>
+							</div>
+						</div>
+					</div>
+					<div id="toast"></div>
+
+					<div id='console'></div>
+				</div>
+
+				<div id='dmgInfoContainer'>
+					<div id='damageContainer'></div>
+
+					<div id='talentsContainer'>
+						<div class="statsHeader" for="skill" translate="true">Skill</div>
+						<div class="damageGroup" for="skill"></div>
+
+						<div class="statsHeader" for="burst" translate="true">Burst</div>
+						<div class="damageGroup" for="burst"></div>
+
+						<div class="statsHeader" for="passives" translate="true">Passives</div>
+						<div class="damageGroup" for="passives"></div>
+
+						<div class="statsHeader" for="constellations" translate="true">Constellations</div>
+						<div class="damageGroup" for="constellations"></div>
+					</div>
+
+					<div id='weaponBuffContainer'></div>
+					<div id='buffContainer'></div>
+					<div id='additionalBuffsContainer'></div>
+				</div>
+
+				<div id="fullScreenButton">
+				</div>
+			</div>
+
+			<div id="BannerBottom" class="adban"></div>
+
+<script type="text/javascript">
+function bbnn(){
+  window['nitroAds'].createAd('BannerBottom', {
+    "refreshLimit": 10,
+    "refreshTime": 90,
+    "renderVisibleOnly": false,
+    "refreshVisibleOnly": true,
+    "sizes": [
+      [
+        "728",
+        "90"
+      ],
+      [
+        "320",
+        "50"
+      ]
+    ],
+    "mediaQuery": "(min-width: 1025px), (min-width: 768px) and (max-width: 1024px), (min-width: 320px) and (max-width: 767px)"
+  });
+}
+__q.push(bbnn);
+bbnn();
+</script>		</div>
+		<div class="footer">Copyright ImpactG368 &#169; 2020 | v3.0 Genshin Impact Damage Calculator | <a class="obviousLink" href="https://github.com/JenShin-368/GenshinImpactCalculator/issues">Report bugs or suggestions
+        to:
+        <span class="__cf_email__" data-cfemail="6e07031e0f0d1a095d58562e09030f0702400d0103">[email&#160;protected]</span></a> |&nbsp; 
+        <a class="widgetLogo-small" href="https://discord.gg/f5aCu4EHSN" target="_blank"></a>
+        &nbsp;|&nbsp; 
+        <a href="https://genshinimpactcalculator.com/privacy.htm">Privacy Policy</a>&nbsp;|&nbsp;
+        <a href="https://genshinimpactcalculator.com/terms.htm">Terms of Service</a>
+        &nbsp;|
+        <span>
+            <form action="https://www.paypal.com/donate" method="post" target="_top">
+                <input type="hidden" name="hosted_button_id" value="N6XWK5QQB7CQG" />
+                <input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif" border="0"
+                    name="submit" title="PayPal - The safer, easier way to pay online!"
+                    alt="Donate with PayPal button" />
+                <img alt="" border="0" src="https://www.paypal.com/en_US/i/scr/pixel.gif" width="1" height="1" />
+            </form>
+        </span>
+        <span>
+            &emsp; <a href="https://twitter.com/DamageCalc?ref_src=twsrc%5Etfw" class="twitter-follow-button"
+                data-show-count="false">Follow @DamageCalc</a>
+            <script data-cfasync="false" src="cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+        </span>
+        <span data-ccpa-link="1"></span>
+        <div id="ncmp-consent-link"></div>
+    </div>	</body>
+
+		<script>
+		let _shareKey;
+	</script>
+	<script>
+		//
+		//
+		//
+		if (_shareKey) {
+			db.collection("sharedLinks").doc(_shareKey).get().then((doc) => {
+				if (doc.exists) {
+					let ref = doc.data().ref;
+					let desc = safeify(doc.data().desc);
+					ref.get().then((d) => {
+						if (doc.exists) {
+							if (CheckDependencies()) {
+								_GUI._SavedBuilds["SharedBuild"] = { data: d.data().data };
+								Init();
+								if (desc) {
+									_GUI.ShowDesc(desc);
+								}
+							} else {
+								_GUI.Toast("Failed to load shared build. Please disable adBlock.");
+								setTimeout((e) => {
+									_GUI.Toast("Failed to load shared build. Please disable adBlock.");
+								}, 3000);
+							}
+						}
+					})
+				}
+			});
+		}
+
+		firebase.auth().onAuthStateChanged(user => {
+			if (user) {
+				_GUI._DB = db.collection("users/" + user.uid + "/savedBuilds");
+				_GUI._DB.get().then((docs) => {
+					verify(docs, user);
+					_GUI._SavedBuilds = {};
+					docs.forEach((doc) => {
+						let d = safeify(doc.data());
+						_GUI._SavedBuilds[d.name] = { id: doc.id, data: d.data };
+					});
+					Init();
+				}).catch((e) => {
+					console.log("Load Failed");
+					Init();
+				});
+
+				_GUI._ArtifactCtrl._DB = db.collection("users/" + user.uid + "/savedArtifacts");
+				_GUI._ArtifactCtrl._DB.get().then((docs) => {
+					docs.forEach((doc) => {
+						checkArt(docs, user);
+						let d = safeify(doc.data());
+						_GUI._ArtifactCtrl.AddSaveData({
+							name: d.name,
+							id: doc.id,
+							artifact: d.data
+						});
+					});
+				}).catch((e) => {
+					console.log("Load Failed:" + e);
+				});
+			}
+			else {
+				_C1 = false;
+				_GUI.ClearUser();
+				Init();
+			}
+		});
+
+		function Init() {
+			_GUI.Init();
+		}
+	</script>
+
+</html>
